@@ -2,10 +2,18 @@
 """
 Apple Quality Scorecard - Financial Fundamentals Analysis
 Calculates quality scores based on Apple's key financial metrics.
+With Rich library for beautiful colored output.
 """
 
 import pandas as pd
 from datetime import datetime
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
+from rich.align import Align
+
+console = Console()
 
 def score_metric(value, thresholds):
     """
@@ -219,150 +227,157 @@ def format_percentage(value):
     """Format decimal as percentage."""
     return f"{value*100:.2f}%"
 
+def get_score_color(score):
+    """Return color based on score value."""
+    if score >= 9:
+        return "bold bright_green"
+    elif score >= 8:
+        return "bold green"
+    elif score >= 7:
+        return "bold cyan"
+    elif score >= 6:
+        return "bold yellow"
+    elif score >= 5:
+        return "yellow"
+    else:
+        return "bold red"
+
 def create_scorecard_table(financials, scores):
-    """Create a formatted scorecard table."""
+    """Create a beautiful Rich formatted scorecard table."""
 
-    data = {
-        'Metric': [],
-        'Value': [],
-        'Score (1-10)': [],
-    }
+    table = Table(title="[bold cyan]APPLE QUALITY SCORECARD[/bold cyan]",
+                  show_header=True,
+                  header_style="bold white on dark_blue",
+                  border_style="cyan",
+                  padding=(0, 1))
 
-    # Revenue
-    data['Metric'].append('Revenue')
-    data['Value'].append(format_currency(financials['revenue']))
-    data['Score (1-10)'].append(scores['Revenue'])
+    table.add_column("Metric", style="bold white")
+    table.add_column("Value", style="bright_white")
+    table.add_column("Score", justify="center")
 
-    # Revenue Growth
-    data['Metric'].append('Revenue Growth (YoY)')
-    data['Value'].append(format_percentage(financials['revenue_growth']))
-    data['Score (1-10)'].append(scores['Revenue Growth (YoY)'])
+    metrics_data = [
+        ('Revenue', format_currency(financials['revenue']), scores['Revenue']),
+        ('Revenue Growth (YoY)', format_percentage(financials['revenue_growth']), scores['Revenue Growth (YoY)']),
+        ('Gross Margin', format_percentage(financials['gross_margin']), scores['Gross Margin']),
+        ('Operating Margin', format_percentage(financials['operating_margin']), scores['Operating Margin']),
+        ('Net Profit Margin', format_percentage(financials['net_margin']), scores['Net Profit Margin']),
+        ('Total Debt', format_currency(financials['total_debt']), scores['Total Debt']),
+        ('Cash on Hand', format_currency(financials['cash']), scores['Cash on Hand']),
+        ('Free Cash Flow', format_currency(financials['free_cash_flow']), scores['Free Cash Flow']),
+        ('Return on Equity', format_percentage(financials['return_on_equity']), scores['Return on Equity']),
+        ('Earnings Per Share', f"${financials['eps']:.2f}", scores['Earnings Per Share']),
+    ]
 
-    # Gross Margin
-    data['Metric'].append('Gross Margin')
-    data['Value'].append(format_percentage(financials['gross_margin']))
-    data['Score (1-10)'].append(scores['Gross Margin'])
+    for metric, value, score in metrics_data:
+        score_color = get_score_color(score)
+        score_text = f"[{score_color}]{score}/10[/{score_color}]"
+        table.add_row(metric, value, score_text)
 
-    # Operating Margin
-    data['Metric'].append('Operating Margin')
-    data['Value'].append(format_percentage(financials['operating_margin']))
-    data['Score (1-10)'].append(scores['Operating Margin'])
-
-    # Net Profit Margin
-    data['Metric'].append('Net Profit Margin')
-    data['Value'].append(format_percentage(financials['net_margin']))
-    data['Score (1-10)'].append(scores['Net Profit Margin'])
-
-    # Total Debt
-    data['Metric'].append('Total Debt')
-    data['Value'].append(format_currency(financials['total_debt']))
-    data['Score (1-10)'].append(scores['Total Debt'])
-
-    # Cash on Hand
-    data['Metric'].append('Cash on Hand')
-    data['Value'].append(format_currency(financials['cash']))
-    data['Score (1-10)'].append(scores['Cash on Hand'])
-
-    # Free Cash Flow
-    data['Metric'].append('Free Cash Flow')
-    data['Value'].append(format_currency(financials['free_cash_flow']))
-    data['Score (1-10)'].append(scores['Free Cash Flow'])
-
-    # Return on Equity
-    data['Metric'].append('Return on Equity')
-    data['Value'].append(format_percentage(financials['return_on_equity']))
-    data['Score (1-10)'].append(scores['Return on Equity'])
-
-    # Earnings Per Share
-    data['Metric'].append('Earnings Per Share')
-    data['Value'].append(f"${financials['eps']:.2f}")
-    data['Score (1-10)'].append(scores['Earnings Per Share'])
-
-    df = pd.DataFrame(data)
-    return df
+    return table
 
 def calculate_overall_score(scores):
     """Calculate overall quality score as average of all metric scores."""
     return sum(scores.values()) / len(scores)
 
 def analyze_fundamentals(financials, scores, overall_score):
-    """Provide detailed analysis of Apple's fundamentals."""
+    """Provide detailed analysis of Apple's fundamentals with Rich formatting."""
 
-    print("\n" + "="*80)
-    print("APPLE QUALITY SCORECARD ANALYSIS")
-    print("="*80)
+    # Header
+    title = Text("APPLE QUALITY SCORECARD ANALYSIS", style="bold bright_cyan")
+    console.print(Align.center(title))
+    console.print()
 
-    print(f"\nCompany: {financials['company_name']}")
-    print(f"Ticker: {financials['ticker']}")
-    print(f"Current Price: ${financials['current_price']:.2f}")
-    print(f"Analysis Date: {datetime.now().strftime('%Y-%m-%d')}")
+    # Company info
+    info_text = (f"[bold white]Company:[/bold white] [bright_cyan]{financials['company_name']}[/bright_cyan]  "
+                f"[bold white]Ticker:[/bold white] [bright_yellow]{financials['ticker']}[/bright_yellow]  "
+                f"[bold white]Price:[/bold white] [bright_green]${financials['current_price']:.2f}[/bright_green]  "
+                f"[bold white]Date:[/bold white] [bright_white]{datetime.now().strftime('%Y-%m-%d')}[/bright_white]")
+    console.print(info_text)
+    console.print()
 
-    print("\n" + "-"*80)
-    print("METRIC SCORES")
-    print("-"*80 + "\n")
+    # Scorecard table
+    table = create_scorecard_table(financials, scores)
+    console.print(table)
+    console.print()
 
-    # Create and display scorecard table
-    df = create_scorecard_table(financials, scores)
-    print(df.to_string(index=False))
-
-    print("\n" + "-"*80)
-    print(f"OVERALL QUALITY SCORE: {overall_score:.1f}/10")
-    print("-"*80)
-
-    # Determine rating
+    # Overall Score Panel
     if overall_score >= 8.5:
         rating = "EXCELLENT"
+        rating_color = "bold bright_green"
+        score_color = "bold bright_green"
     elif overall_score >= 7.5:
         rating = "VERY GOOD"
+        rating_color = "bold green"
+        score_color = "bold green"
     elif overall_score >= 6.5:
         rating = "GOOD"
+        rating_color = "bold cyan"
+        score_color = "bold cyan"
     elif overall_score >= 5.5:
         rating = "FAIR"
+        rating_color = "bold yellow"
+        score_color = "bold yellow"
     else:
         rating = "POOR"
+        rating_color = "bold red"
+        score_color = "bold red"
 
-    print(f"Rating: {rating}\n")
+    score_panel_text = f"[{score_color}]OVERALL QUALITY SCORE: {overall_score:.1f}/10[/{score_color}]\n[{rating_color}]Rating: {rating}[/{rating_color}]"
+    score_panel = Panel(score_panel_text, border_style="cyan", style="on black")
+    console.print(score_panel)
+    console.print()
 
-    # Strengths and Weaknesses
-    print("STRENGTHS (Score 8-10):")
-    print("-" * 40)
+    # Strengths
     strengths = [(k, v) for k, v in scores.items() if v >= 8]
+    strengths_text = "[bold bright_green]STRENGTHS (Score 8-10)[/bold bright_green]\n"
     if strengths:
         for metric, score in strengths:
-            print(f"  ✓ {metric}: {score}/10")
+            strengths_text += f"[bright_green]✓[/bright_green] {metric}: [bold green]{score}/10[/bold green]\n"
     else:
-        print("  (No metrics scored 8+)")
+        strengths_text += "[dim](No metrics scored 8+)[/dim]"
 
-    print("\nWEAKNESSES (Score 1-4):")
-    print("-" * 40)
+    strengths_panel = Panel(strengths_text.strip(), border_style="green", style="on black")
+    console.print(strengths_panel)
+    console.print()
+
+    # Weaknesses
     weaknesses = [(k, v) for k, v in scores.items() if v <= 4]
+    weaknesses_text = "[bold bright_red]WEAKNESSES (Score 1-4)[/bold bright_red]\n"
     if weaknesses:
         for metric, score in weaknesses:
-            print(f"  ✗ {metric}: {score}/10")
+            weaknesses_text += f"[bright_red]✗[/bright_red] {metric}: [bold red]{score}/10[/bold red]\n"
     else:
-        print("  (No significant weaknesses)")
+        weaknesses_text += "[dim](No significant weaknesses)[/dim]"
+
+    weaknesses_panel = Panel(weaknesses_text.strip(), border_style="red", style="on black")
+    console.print(weaknesses_panel)
+    console.print()
 
     # Detailed Analysis
-    print("\n" + "="*80)
-    print("DETAILED ANALYSIS")
-    print("="*80 + "\n")
-
-    analysis = ""
+    analysis_title = Text("DETAILED ANALYSIS", style="bold bright_cyan")
+    console.print(Align.center(analysis_title))
+    console.print()
 
     # Revenue analysis
     if financials['revenue'] > 350e9:
-        analysis += f"📊 REVENUE: With ${financials['revenue']/1e9:.1f}B in annual revenue, Apple is one of the largest technology companies globally. The massive revenue base provides strong financial stability.\n\n"
+        console.print(f"[bold bright_cyan]📊 REVENUE[/bold bright_cyan]\n"
+                     f"With [bright_yellow]${financials['revenue']/1e9:.1f}B[/bright_yellow] in annual revenue, Apple is one of the largest "
+                     f"technology companies globally. The massive revenue base provides strong financial stability.\n")
 
     # Growth analysis
     growth_rate = financials['revenue_growth']
     if growth_rate > 0.15:
-        analysis += f"📈 GROWTH: Revenue growth of {growth_rate*100:.1f}% indicates strong market demand and successful product launches.\n\n"
+        console.print(f"[bold bright_green]📈 GROWTH[/bold bright_green]\n"
+                     f"Revenue growth of [bright_green]{growth_rate*100:.1f}%[/bright_green] indicates strong market demand and successful product launches.\n")
     elif growth_rate > 0.05:
-        analysis += f"📈 GROWTH: Moderate revenue growth of {growth_rate*100:.1f}% is typical for a mature company of Apple's size.\n\n"
+        console.print(f"[bold cyan]📈 GROWTH[/bold cyan]\n"
+                     f"Moderate revenue growth of [cyan]{growth_rate*100:.1f}%[/cyan] is typical for a mature company of Apple's size.\n")
     elif growth_rate > 0:
-        analysis += f"📈 GROWTH: Slow revenue growth of {growth_rate*100:.1f}% suggests market saturation challenges.\n\n"
+        console.print(f"[bold yellow]📈 GROWTH[/bold yellow]\n"
+                     f"Slow revenue growth of [yellow]{growth_rate*100:.1f}%[/yellow] suggests market saturation challenges.\n")
     else:
-        analysis += f"📉 GROWTH: Negative revenue growth of {growth_rate*100:.1f}% indicates declining sales.\n\n"
+        console.print(f"[bold bright_red]📉 GROWTH[/bold bright_red]\n"
+                     f"Negative revenue growth of [bright_red]{growth_rate*100:.1f}%[/bright_red] indicates declining sales.\n")
 
     # Profitability analysis
     gm = financials['gross_margin']
@@ -370,15 +385,17 @@ def analyze_fundamentals(financials, scores, overall_score):
     nm = financials['net_margin']
 
     if gm > 0.40 and om > 0.25 and nm > 0.20:
-        analysis += f"💰 PROFITABILITY: Exceptional margins across the board:\n"
-        analysis += f"   - Gross Margin: {gm*100:.1f}% (Very high - excellent pricing power)\n"
-        analysis += f"   - Operating Margin: {om*100:.1f}% (Excellent operational efficiency)\n"
-        analysis += f"   - Net Margin: {nm*100:.1f}% (Superior bottom-line profitability)\n\n"
+        console.print(f"[bold bright_green]💰 PROFITABILITY[/bold bright_green]\n"
+                     f"Exceptional margins across the board:\n"
+                     f"  • Gross Margin: [bright_green]{gm*100:.1f}%[/bright_green] (Very high - excellent pricing power)\n"
+                     f"  • Operating Margin: [bright_green]{om*100:.1f}%[/bright_green] (Excellent operational efficiency)\n"
+                     f"  • Net Margin: [bright_green]{nm*100:.1f}%[/bright_green] (Superior bottom-line profitability)\n")
     elif gm > 0.35 and om > 0.20 and nm > 0.15:
-        analysis += f"💰 PROFITABILITY: Strong margins indicating premium positioning:\n"
-        analysis += f"   - Gross Margin: {gm*100:.1f}%\n"
-        analysis += f"   - Operating Margin: {om*100:.1f}%\n"
-        analysis += f"   - Net Margin: {nm*100:.1f}%\n\n"
+        console.print(f"[bold green]💰 PROFITABILITY[/bold green]\n"
+                     f"Strong margins indicating premium positioning:\n"
+                     f"  • Gross Margin: [green]{gm*100:.1f}%[/green]\n"
+                     f"  • Operating Margin: [green]{om*100:.1f}%[/green]\n"
+                     f"  • Net Margin: [green]{nm*100:.1f}%[/green]\n")
 
     # Balance sheet analysis
     debt = financials['total_debt']
@@ -386,51 +403,59 @@ def analyze_fundamentals(financials, scores, overall_score):
     net_debt = debt - cash
 
     if net_debt < 0:
-        analysis += f"🏦 BALANCE SHEET: Net cash position of ${abs(net_debt)/1e9:.1f}B indicates strong financial flexibility.\n"
-        analysis += f"   - Cash on Hand: ${cash/1e9:.1f}B\n"
-        analysis += f"   - Total Debt: ${debt/1e9:.1f}B\n\n"
+        console.print(f"[bold bright_cyan]🏦 BALANCE SHEET[/bold bright_cyan]\n"
+                     f"Net cash position of [bright_green]${abs(net_debt)/1e9:.1f}B[/bright_green] indicates strong financial flexibility.\n"
+                     f"  • Cash on Hand: [bright_yellow]${cash/1e9:.1f}B[/bright_yellow]\n"
+                     f"  • Total Debt: [bright_yellow]${debt/1e9:.1f}B[/bright_yellow]\n")
     elif net_debt < 100e9:
-        analysis += f"🏦 BALANCE SHEET: Conservative balance sheet with manageable debt.\n"
-        analysis += f"   - Net Debt: ${net_debt/1e9:.1f}B\n\n"
+        console.print(f"[bold cyan]🏦 BALANCE SHEET[/bold cyan]\n"
+                     f"Conservative balance sheet with manageable debt.\n"
+                     f"  • Net Debt: [yellow]${net_debt/1e9:.1f}B[/yellow]\n")
     else:
-        analysis += f"🏦 BALANCE SHEET: Significant debt load of ${debt/1e9:.1f}B, though offset by ${cash/1e9:.1f}B in cash.\n\n"
+        console.print(f"[bold yellow]🏦 BALANCE SHEET[/bold yellow]\n"
+                     f"Significant debt load of [yellow]${debt/1e9:.1f}B[/yellow], though offset by [bright_yellow]${cash/1e9:.1f}B[/bright_yellow] in cash.\n")
 
     # Cash flow analysis
     fcf = financials['free_cash_flow']
     if fcf > 80e9:
-        analysis += f"💵 CASH FLOW: Exceptional free cash flow of ${fcf/1e9:.1f}B enables substantial dividends, buybacks, and R&D investments.\n\n"
+        console.print(f"[bold bright_green]💵 CASH FLOW[/bold bright_green]\n"
+                     f"Exceptional free cash flow of [bright_green]${fcf/1e9:.1f}B[/bright_green] enables substantial dividends, buybacks, and R&D investments.\n")
     elif fcf > 40e9:
-        analysis += f"💵 CASH FLOW: Strong free cash flow of ${fcf/1e9:.1f}B provides financial flexibility.\n\n"
+        console.print(f"[bold green]💵 CASH FLOW[/bold green]\n"
+                     f"Strong free cash flow of [green]${fcf/1e9:.1f}B[/green] provides financial flexibility.\n")
 
     # Return on Equity analysis
     roe = financials['return_on_equity']
     if roe > 0.50:
-        analysis += f"📈 EFFICIENCY: Exceptional ROE of {roe*100:.1f}% demonstrates excellent capital allocation and shareholder value creation.\n\n"
+        console.print(f"[bold bright_green]📈 EFFICIENCY[/bold bright_green]\n"
+                     f"Exceptional ROE of [bright_green]{roe*100:.1f}%[/bright_green] demonstrates excellent capital allocation and shareholder value creation.\n")
     elif roe > 0.20:
-        analysis += f"📈 EFFICIENCY: Strong ROE of {roe*100:.1f}% shows effective capital deployment.\n\n"
-
-    print(analysis)
+        console.print(f"[bold green]📈 EFFICIENCY[/bold green]\n"
+                     f"Strong ROE of [green]{roe*100:.1f}%[/green] shows effective capital deployment.\n")
 
     # Summary
-    print("="*80)
-    print("SUMMARY")
-    print("="*80 + "\n")
+    summary_title = Text("SUMMARY", style="bold bright_cyan")
+    console.print(Align.center(summary_title))
+    console.print()
 
     if overall_score >= 8.0:
-        print("Apple demonstrates exceptional financial fundamentals with:")
-        print("• Market-leading profitability and margins")
-        print("• Strong cash generation and balance sheet strength")
-        print("• Efficient capital allocation (high ROE)")
-        print("• Premium brand positioning justifying high gross margins")
-        print("\nThis company represents one of the highest-quality businesses in technology.")
+        summary_text = ("[bold bright_green]Apple demonstrates exceptional financial fundamentals with:[/bold bright_green]\n"
+                       "[bright_green]•[/bright_green] Market-leading profitability and margins\n"
+                       "[bright_green]•[/bright_green] Strong cash generation and balance sheet strength\n"
+                       "[bright_green]•[/bright_green] Efficient capital allocation (high ROE)\n"
+                       "[bright_green]•[/bright_green] Premium brand positioning justifying high gross margins\n\n"
+                       "[bright_cyan]This company represents one of the highest-quality businesses in technology.[/bright_cyan]")
     elif overall_score >= 7.0:
-        print("Apple shows very good financial fundamentals with strengths in:")
-        print("• Profitability and operational efficiency")
-        print("• Cash generation capabilities")
-        print("• Financial stability")
-        print("\nApple remains a high-quality investment with solid business metrics.")
+        summary_text = ("[bold green]Apple shows very good financial fundamentals with strengths in:[/bold green]\n"
+                       "[green]•[/green] Profitability and operational efficiency\n"
+                       "[green]•[/green] Cash generation capabilities\n"
+                       "[green]•[/green] Financial stability\n\n"
+                       "[cyan]Apple remains a high-quality investment with solid business metrics.[/cyan]")
     else:
-        print("Apple's fundamentals suggest some areas of concern that warrant attention.")
+        summary_text = "[yellow]Apple's fundamentals suggest some areas of concern that warrant attention.[/yellow]"
+
+    summary_panel = Panel(summary_text, border_style="cyan", style="on black")
+    console.print(summary_panel)
 
 def main():
     """Main execution function."""
@@ -448,9 +473,9 @@ def main():
         analyze_fundamentals(financials, scores, overall_score)
 
     except Exception as e:
-        print(f"Error fetching or processing financial data: {e}")
-        print("\nMake sure you have the required packages installed:")
-        print("  pip install yfinance pandas")
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        console.print("\n[yellow]Make sure you have the required packages installed:[/yellow]")
+        console.print("  [cyan]pip install rich pandas[/cyan]")
 
 if __name__ == "__main__":
     main()

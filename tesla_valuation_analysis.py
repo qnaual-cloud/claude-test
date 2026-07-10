@@ -192,129 +192,129 @@ def get_value_color(current, fair_value):
         return 'bold bright_red'
 
 def display_valuation_analysis(financials, dcf_data, pe_data, pb_data):
-    """Display comprehensive valuation analysis."""
+    """Display comprehensive valuation analysis with vibrant highlighting."""
 
     # Header
-    title = Text("TESLA VALUATION ANALYSIS - THREE METHODS", style="bold bright_cyan")
+    title = Text("TESLA VALUATION ANALYSIS - THREE METHODS", style="bold bright_magenta on black")
     console.print(Align.center(title))
     console.print()
 
     # Current Valuation
     current_price = financials['current_price']
-    current_color = "bright_yellow"
+    current_color = "bold bright_yellow"
 
     current_text = (
-        f"[bold white]Company:[/bold white] [bright_cyan]Tesla Inc. (TSLA)[/bright_cyan]\n"
-        f"[bold white]Current Price:[/bold white] [{current_color}]${current_price:.2f}[/{current_color}]\n"
-        f"[bold white]Market Cap:[/bold white] [bright_cyan]${financials['market_cap']:.1f}B[/bright_cyan]\n"
-        f"[bold white]Analysis Date:[/bold white] [bright_white]{datetime.now().strftime('%B %d, %Y')}[/bright_white]"
+        f"[bold bright_white]Company:[/bold bright_white] [bold bright_cyan]Tesla Inc. (TSLA)[/bold bright_cyan]\n"
+        f"[bold bright_white]Current Price:[/bold bright_white] [{current_color}]${current_price:.2f}[/{current_color}]\n"
+        f"[bold bright_white]Market Cap:[/bold bright_white] [bold bright_cyan]${financials['market_cap']:.1f}B[/bold bright_cyan]\n"
+        f"[bold bright_white]Analysis Date:[/bold bright_white] [bold bright_white]{datetime.now().strftime('%B %d, %Y')}[/bold bright_white]"
     )
-    current_panel = Panel(current_text, border_style="cyan", style="on black")
+    current_panel = Panel(current_text, border_style="bright_magenta", style="on black")
     console.print(current_panel)
     console.print()
 
     # METHOD 1: DCF ANALYSIS
-    console.print("[bold bright_cyan]METHOD 1: DCF (Discounted Cash Flow) VALUATION[/bold bright_cyan]\n")
+    console.print("[bold bright_magenta]⭐ METHOD 1: DCF (Discounted Cash Flow) VALUATION[/bold bright_magenta]\n")
 
     dcf_value = dcf_data['intrinsic_value']
     dcf_diff = ((dcf_value - current_price) / current_price) * 100
     dcf_color = get_value_color(current_price, dcf_value)
 
     dcf_text = (
-        f"[bold white]Intrinsic Value (DCF):[/bold white] [{dcf_color}]${dcf_value:.2f}[/{dcf_color}]\n"
-        f"[bold white]Current Price:[/bold white] [bright_yellow]${current_price:.2f}[/bright_yellow]\n"
-        f"[bold white]Upside/Downside:[/bold white] [{dcf_color}]{dcf_diff:+.1f}%[/{dcf_color}]\n"
-        f"[bold white]Enterprise Value:[/bold white] [bright_cyan]${dcf_data['enterprise_value']:.1f}B[/bright_cyan]\n"
-        f"[bold white]Discount Rate (WACC):[/bold white] [bright_cyan]{dcf_data['discount_rate']*100:.1f}%[/bright_cyan]\n"
-        f"[bold white]Terminal Growth:[/bold white] [bright_cyan]{dcf_data['terminal_growth']*100:.1f}%[/bright_cyan]\n"
-        f"[dim]DCF assumes 5-year cash flow projection with declining growth rates[/dim]"
+        f"[bold bright_white]Intrinsic Value (DCF):[/bold bright_white] [{dcf_color}]${dcf_value:.2f}[/{dcf_color}]\n"
+        f"[bold bright_white]Current Price:[/bold bright_white] [{current_color}]${current_price:.2f}[/{current_color}]\n"
+        f"[bold bright_white]Upside/Downside:[/bold bright_white] [{dcf_color}]{dcf_diff:+.1f}%[/{dcf_color}]\n"
+        f"[bold bright_white]Enterprise Value:[/bold bright_white] [bold bright_green]${dcf_data['enterprise_value']:.1f}B[/bold bright_green]\n"
+        f"[bold bright_white]Discount Rate (WACC):[/bold bright_white] [bold bright_cyan]{dcf_data['discount_rate']*100:.1f}%[/bold bright_cyan]\n"
+        f"[bold bright_white]Terminal Growth:[/bold bright_white] [bold bright_cyan]{dcf_data['terminal_growth']*100:.1f}%[/bold bright_cyan]\n"
+        f"[bold white]DCF assumes 5-year cash flow projection with declining growth rates[/bold white]"
     )
-    dcf_panel = Panel(dcf_text, border_style="bright_cyan", style="on black")
+    dcf_panel = Panel(dcf_text, border_style="bright_magenta", style="on black")
     console.print(dcf_panel)
     console.print()
 
     # METHOD 2: P/E MULTIPLE
-    console.print("[bold bright_cyan]METHOD 2: P/E MULTIPLE VALUATION[/bold bright_cyan]\n")
+    console.print("[bold bright_magenta]⭐ METHOD 2: P/E MULTIPLE VALUATION[/bold bright_magenta]\n")
 
     pe_value = pe_data['consensus_value']
     pe_diff = ((pe_value - current_price) / current_price) * 100
     pe_color = get_value_color(current_price, pe_value)
 
     pe_text = (
-        f"[bold white]Fair Value (P/E Multiple):[/bold white] [{pe_color}]${pe_value:.2f}[/{pe_color}]\n"
-        f"[bold white]Current Price:[/bold white] [bright_yellow]${current_price:.2f}[/bright_yellow]\n"
-        f"[bold white]Upside/Downside:[/bold white] [{pe_color}]{pe_diff:+.1f}%[/{pe_color}]\n"
-        f"[bold white]Current P/E Ratio:[/bold white] [bright_yellow]{financials['current_pe']:.1f}x[/bright_yellow]\n"
-        f"[bold white]Fair Value P/E:[/bold white] [bright_cyan]{pe_data['consensus_pe']:.1f}x[/bright_cyan]\n"
-        f"[bold white]EPS:[/bold white] [bright_cyan]${pe_data['eps']:.2f}[/bright_cyan]\n\n"
-        f"[dim]Conservative (Auto Maker): {pe_data['auto_maker_pe']:.1f}x P/E = ${pe_data['auto_maker_value']:.2f}[/dim]\n"
-        f"[dim]Optimistic (Tech Growth): {pe_data['tech_growth_pe']:.1f}x P/E = ${pe_data['tech_growth_value']:.2f}[/dim]"
+        f"[bold bright_white]Fair Value (P/E Multiple):[/bold bright_white] [{pe_color}]${pe_value:.2f}[/{pe_color}]\n"
+        f"[bold bright_white]Current Price:[/bold bright_white] [{current_color}]${current_price:.2f}[/{current_color}]\n"
+        f"[bold bright_white]Upside/Downside:[/bold bright_white] [{pe_color}]{pe_diff:+.1f}%[/{pe_color}]\n"
+        f"[bold bright_white]Current P/E Ratio:[/bold bright_white] [{current_color}]{financials['current_pe']:.1f}x[/{current_color}]\n"
+        f"[bold bright_white]Fair Value P/E:[/bold bright_white] [bold bright_cyan]{pe_data['consensus_pe']:.1f}x[/bold bright_cyan]\n"
+        f"[bold bright_white]EPS:[/bold bright_white] [bold bright_green]${pe_data['eps']:.2f}[/bold bright_green]\n\n"
+        f"[bold white]Conservative (Auto Maker): {pe_data['auto_maker_pe']:.1f}x P/E = [bold bright_red]${pe_data['auto_maker_value']:.2f}[/bold bright_red][/bold white]\n"
+        f"[bold white]Optimistic (Tech Growth): {pe_data['tech_growth_pe']:.1f}x P/E = [bold bright_green]${pe_data['tech_growth_value']:.2f}[/bold bright_green][/bold white]"
     )
-    pe_panel = Panel(pe_text, border_style="bright_cyan", style="on black")
+    pe_panel = Panel(pe_text, border_style="bright_magenta", style="on black")
     console.print(pe_panel)
     console.print()
 
     # METHOD 3: PRICE-TO-BOOK
-    console.print("[bold bright_cyan]METHOD 3: PRICE-TO-BOOK VALUATION[/bold bright_cyan]\n")
+    console.print("[bold bright_magenta]⭐ METHOD 3: PRICE-TO-BOOK VALUATION[/bold bright_magenta]\n")
 
     pb_value = pb_data['fair_value_value']
     pb_diff = ((pb_value - current_price) / current_price) * 100
     pb_color = get_value_color(current_price, pb_value)
 
     pb_text = (
-        f"[bold white]Fair Value (P/B):[/bold white] [{pb_color}]${pb_value:.2f}[/{pb_color}]\n"
-        f"[bold white]Current Price:[/bold white] [bright_yellow]${current_price:.2f}[/bright_yellow]\n"
-        f"[bold white]Upside/Downside:[/bold white] [{pb_color}]{pb_diff:+.1f}%[/{pb_color}]\n"
-        f"[bold white]Book Value per Share:[/bold white] [bright_cyan]${pb_data['book_value_per_share']:.2f}[/bright_cyan]\n"
-        f"[bold white]Current P/B Ratio:[/bold white] [bright_yellow]{financials['current_pb']:.2f}x[/bright_yellow]\n"
-        f"[bold white]Fair Value P/B:[/bold white] [bright_cyan]{pb_data['fair_value_pb']:.2f}x[/bright_cyan]\n\n"
-        f"[dim]Conservative (2.5x P/B): ${pb_data['conservative_value']:.2f}[/dim]\n"
-        f"[dim]Optimistic (4.5x P/B): ${pb_data['optimistic_value']:.2f}[/dim]"
+        f"[bold bright_white]Fair Value (P/B):[/bold bright_white] [{pb_color}]${pb_value:.2f}[/{pb_color}]\n"
+        f"[bold bright_white]Current Price:[/bold bright_white] [{current_color}]${current_price:.2f}[/{current_color}]\n"
+        f"[bold bright_white]Upside/Downside:[/bold bright_white] [{pb_color}]{pb_diff:+.1f}%[/{pb_color}]\n"
+        f"[bold bright_white]Book Value per Share:[/bold bright_white] [bold bright_cyan]${pb_data['book_value_per_share']:.2f}[/bold bright_cyan]\n"
+        f"[bold bright_white]Current P/B Ratio:[/bold bright_white] [{current_color}]{financials['current_pb']:.2f}x[/{current_color}]\n"
+        f"[bold bright_white]Fair Value P/B:[/bold bright_white] [bold bright_cyan]{pb_data['fair_value_pb']:.2f}x[/bold bright_cyan]\n\n"
+        f"[bold white]Conservative (2.5x P/B): [bold bright_red]${pb_data['conservative_value']:.2f}[/bold bright_red][/bold white]\n"
+        f"[bold white]Optimistic (4.5x P/B): [bold bright_green]${pb_data['optimistic_value']:.2f}[/bold bright_green][/bold white]"
     )
-    pb_panel = Panel(pb_text, border_style="bright_cyan", style="on black")
+    pb_panel = Panel(pb_text, border_style="bright_magenta", style="on black")
     console.print(pb_panel)
     console.print()
 
     # VALUATION COMPARISON TABLE
-    console.print("[bold bright_cyan]📊 VALUATION METHODS COMPARISON[/bold bright_cyan]\n")
+    console.print("[bold bright_magenta]📊 VALUATION METHODS COMPARISON[/bold bright_magenta]\n")
 
     comparison_table = Table(show_header=True,
-                            header_style="bold white on dark_blue",
-                            border_style="cyan",
+                            header_style="bold white on bright_magenta",
+                            border_style="bright_magenta",
                             padding=(0, 1))
 
-    comparison_table.add_column("Method", style="bold white")
-    comparison_table.add_column("Fair Value", style="bright_white", justify="right")
-    comparison_table.add_column("vs Current", style="bright_white", justify="right")
-    comparison_table.add_column("Upside", style="bright_white", justify="right")
-    comparison_table.add_column("Confidence", style="bright_white")
+    comparison_table.add_column("Method", style="bold bright_white")
+    comparison_table.add_column("Fair Value", style="bold bright_white", justify="right")
+    comparison_table.add_column("vs Current", style="bold bright_white", justify="right")
+    comparison_table.add_column("Upside", style="bold bright_white", justify="right")
+    comparison_table.add_column("Confidence", style="bold bright_white")
 
     dcf_color = get_value_color(current_price, dcf_value)
     pe_color = get_value_color(current_price, pe_value)
     pb_color = get_value_color(current_price, pb_value)
 
     comparison_table.add_row(
-        "DCF Analysis",
-        f"[{dcf_color}]${dcf_value:.2f}[/{dcf_color}]",
-        f"[{dcf_color}]{dcf_diff:+.1f}%[/{dcf_color}]",
-        "40%",
-        "[bright_green]High[/bright_green]"
+        "[bold bright_green]DCF Analysis[/bold bright_green]",
+        f"[bold {dcf_color}]${dcf_value:.2f}[/bold {dcf_color}]",
+        f"[bold {dcf_color}]{dcf_diff:+.1f}%[/bold {dcf_color}]",
+        "[bold bright_green]40%[/bold bright_green]",
+        "[bold bright_green]★★★ High[/bold bright_green]"
     )
 
     comparison_table.add_row(
-        "P/E Multiple",
-        f"[{pe_color}]${pe_value:.2f}[/{pe_color}]",
-        f"[{pe_color}]{pe_diff:+.1f}%[/{pe_color}]",
-        "35%",
-        "[green]Medium[/green]"
+        "[bold bright_yellow]P/E Multiple[/bold bright_yellow]",
+        f"[bold {pe_color}]${pe_value:.2f}[/bold {pe_color}]",
+        f"[bold {pe_color}]{pe_diff:+.1f}%[/bold {pe_color}]",
+        "[bold bright_yellow]35%[/bold bright_yellow]",
+        "[bold yellow]★★ Medium[/bold yellow]"
     )
 
     comparison_table.add_row(
-        "Price-to-Book",
-        f"[{pb_color}]${pb_value:.2f}[/{pb_color}]",
-        f"[{pb_color}]{pb_diff:+.1f}%[/{pb_color}]",
-        "25%",
-        "[yellow]Medium[/yellow]"
+        "[bold bright_cyan]Price-to-Book[/bold bright_cyan]",
+        f"[bold {pb_color}]${pb_value:.2f}[/bold {pb_color}]",
+        f"[bold {pb_color}]{pb_diff:+.1f}%[/bold {pb_color}]",
+        "[bold bright_cyan]25%[/bold bright_cyan]",
+        "[bold bright_cyan]★★ Medium[/bold bright_cyan]"
     )
 
     console.print(comparison_table)
@@ -326,85 +326,87 @@ def display_valuation_analysis(financials, dcf_data, pe_data, pb_data):
     consensus_diff = ((consensus_value - current_price) / current_price) * 100
     consensus_color = get_value_color(current_price, consensus_value)
 
-    console.print("[bold bright_cyan]🎯 CONSENSUS FAIR VALUE[/bold bright_cyan]\n")
+    console.print("[bold bright_magenta]🎯 CONSENSUS FAIR VALUE[/bold bright_magenta]\n")
 
     consensus_text = (
-        f"[bold bright_green]FAIR VALUE:[/bold bright_green] [{consensus_color}]${consensus_value:.2f}[/{consensus_color}]\n"
-        f"[bold white]Current Price:[/bold white] [bright_yellow]${current_price:.2f}[/bright_yellow]\n"
-        f"[bold white]Upside/Downside:[/bold white] [{consensus_color}]{consensus_diff:+.1f}%[/{consensus_color}]\n\n"
-        f"[bold white]Weighting:[/bold white]\n"
-        f"  • DCF Method: 40% = ${dcf_value * 0.40:.2f}\n"
-        f"  • P/E Method: 35% = ${pe_value * 0.35:.2f}\n"
-        f"  • P/B Method: 25% = ${pb_value * 0.25:.2f}\n\n"
-        f"[bright_cyan]Equal-Weight Average: ${consensus_data['equal_weight']:.2f}[/bright_cyan]"
+        f"[bold bright_magenta]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/bold bright_magenta]\n"
+        f"[bold bright_green]FAIR VALUE:[/bold bright_green] [bold {consensus_color}]${consensus_value:.2f}[/bold {consensus_color}]\n"
+        f"[bold bright_white]Current Price:[/bold bright_white] [{current_color}]${current_price:.2f}[/{current_color}]\n"
+        f"[bold bright_white]Upside/Downside:[/bold bright_white] [bold {consensus_color}]{consensus_diff:+.1f}%[/bold {consensus_color}]\n"
+        f"[bold bright_magenta]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/bold bright_magenta]\n"
+        f"[bold bright_white]Weighting:[/bold bright_white]\n"
+        f"  [bold bright_green]•[/bold bright_green] DCF Method: [bold bright_green]40%[/bold bright_green] = [bold bright_green]${dcf_value * 0.40:.2f}[/bold bright_green]\n"
+        f"  [bold bright_yellow]•[/bold bright_yellow] P/E Method: [bold bright_yellow]35%[/bold bright_yellow] = [bold bright_yellow]${pe_value * 0.35:.2f}[/bold bright_yellow]\n"
+        f"  [bold bright_cyan]•[/bold bright_cyan] P/B Method: [bold bright_cyan]25%[/bold bright_cyan] = [bold bright_cyan]${pb_value * 0.25:.2f}[/bold bright_cyan]\n\n"
+        f"[bold bright_magenta]Equal-Weight Average:[/bold bright_magenta] [bold bright_magenta]${consensus_data['equal_weight']:.2f}[/bold bright_magenta]"
     )
-    consensus_panel = Panel(consensus_text, border_style="bright_green", style="on black")
+    consensus_panel = Panel(consensus_text, border_style="bold bright_magenta", style="on black")
     console.print(consensus_panel)
     console.print()
 
     # VALUATION RANGE
-    console.print("[bold bright_cyan]📈 VALUATION RANGE[/bold bright_cyan]\n")
+    console.print("[bold bright_magenta]📈 VALUATION RANGE[/bold bright_magenta]\n")
 
     low_value = min(dcf_value, pe_data['auto_maker_value'], pb_data['conservative_value'])
     high_value = max(dcf_value, pe_data['tech_growth_value'], pb_data['optimistic_value'])
 
     range_text = (
-        f"[bold white]Conservative Case:[/bold white] [bright_red]${low_value:.2f}[/bright_red]\n"
-        f"[bold white]Base Case (Consensus):[/bold white] [bright_green]${consensus_value:.2f}[/bright_green]\n"
-        f"[bold white]Optimistic Case:[/bold white] [bright_green]${high_value:.2f}[/bright_green]\n\n"
-        f"[dim]Range: ${low_value:.2f} - ${high_value:.2f}[/dim]\n"
-        f"[bold white]Current Price:[/bold white] [bright_yellow]${current_price:.2f}[/bright_yellow]"
+        f"[bold bright_white]Conservative Case:[/bold bright_white] [bold bright_red]${low_value:.2f}[/bold bright_red]  [bright_red]▼▼▼[/bright_red]\n"
+        f"[bold bright_white]Base Case (Consensus):[/bold bright_white] [bold bright_magenta]${consensus_value:.2f}[/bold bright_magenta]  [bright_magenta]━━━[/bright_magenta]\n"
+        f"[bold bright_white]Optimistic Case:[/bold bright_white] [bold bright_green]${high_value:.2f}[/bold bright_green]  [bright_green]▲▲▲[/bright_green]\n\n"
+        f"[bold white]Range:[/bold white] [bold bright_red]${low_value:.2f}[/bold bright_red] → [bold bright_green]${high_value:.2f}[/bold bright_green]\n"
+        f"[bold bright_white]Current Price:[/bold bright_white] [{current_color}]${current_price:.2f}[/{current_color}]"
     )
-    range_panel = Panel(range_text, border_style="cyan", style="on black")
+    range_panel = Panel(range_text, border_style="bright_magenta", style="on black")
     console.print(range_panel)
     console.print()
 
     # INVESTMENT RECOMMENDATION
-    console.print("[bold bright_cyan]💡 INVESTMENT RECOMMENDATION[/bold bright_cyan]\n")
+    console.print("[bold bright_magenta]💡 INVESTMENT RECOMMENDATION[/bold bright_magenta]\n")
 
     if consensus_diff > 15:
-        recommendation = "[bold bright_green]STRONG BUY[/bold bright_green]"
+        recommendation = "[bold bright_green]🟢 STRONG BUY[/bold bright_green]"
         reason = f"Significant upside ({consensus_diff:.1f}%) to consensus fair value"
     elif consensus_diff > 5:
-        recommendation = "[bold green]BUY[/bold green]"
+        recommendation = "[bold bright_green]🟢 BUY[/bold bright_green]"
         reason = f"Modest upside ({consensus_diff:.1f}%) suggests undervaluation"
     elif consensus_diff > -5:
-        recommendation = "[bold yellow]HOLD[/bold yellow]"
+        recommendation = "[bold bright_yellow]🟡 HOLD[/bold bright_yellow]"
         reason = f"Fair value within 5%, limited upside/downside"
     elif consensus_diff > -15:
-        recommendation = "[bold bright_yellow]SELL[/bold bright_yellow]"
+        recommendation = "[bold bright_red]🔴 SELL[/bold bright_red]"
         reason = f"Modest overvaluation ({abs(consensus_diff):.1f}%)"
     else:
-        recommendation = "[bold bright_red]STRONG SELL[/bold bright_red]"
+        recommendation = "[bold bright_red]🔴 STRONG SELL[/bold bright_red]"
         reason = f"Significant overvaluation ({abs(consensus_diff):.1f}%)"
 
     rec_text = (
-        f"[bold white]Rating:[/bold white] {recommendation}\n"
-        f"[bold white]Rationale:[/bold white] {reason}\n\n"
-        f"[dim]Based on consensus fair value of ${consensus_value:.2f} vs current price ${current_price:.2f}[/dim]"
+        f"[bold bright_white]Rating:[/bold bright_white] {recommendation}\n"
+        f"[bold bright_white]Rationale:[/bold bright_white] {reason}\n\n"
+        f"[bold white]Based on consensus fair value of [bold bright_magenta]${consensus_value:.2f}[/bold bright_magenta] vs current price [{current_color}]${current_price:.2f}[/{current_color}][/bold white]"
     )
-    rec_panel = Panel(rec_text, border_style="cyan", style="on black")
+    rec_panel = Panel(rec_text, border_style="bold bright_red", style="on black")
     console.print(rec_panel)
     console.print()
 
     # KEY ASSUMPTIONS
-    console.print("[bold bright_cyan]📋 KEY ASSUMPTIONS[/bold bright_cyan]\n")
+    console.print("[bold bright_magenta]📋 KEY ASSUMPTIONS[/bold bright_magenta]\n")
 
     assumptions_text = (
-        "[bold white]DCF Model:[/bold white]\n"
-        "  • 5-year cash flow projection with declining growth (15% → 8%)\n"
-        "  • Terminal growth rate: 3%\n"
-        "  • Discount rate (WACC): 9%\n\n"
-        "[bold white]P/E Method:[/bold white]\n"
-        "  • Consensus fair P/E: 22x (blend of auto maker and tech)\n"
-        "  • Current P/E: 16.2x\n"
-        "  • EPS basis: $14.7B net income / 3.179B shares\n\n"
-        "[bold white]P/B Method:[/bold white]\n"
-        "  • Fair value P/B: 3.5x (blend of asset/growth valuations)\n"
-        "  • Book value: $165B equity / 3.179B shares\n"
-        "  • Range: 2.5x (conservative) to 4.5x (optimistic)"
+        "[bold bright_white]DCF Model:[/bold bright_white]\n"
+        "  [bright_green]✓[/bright_green] 5-year cash flow projection with declining growth (15% → 8%)\n"
+        "  [bright_green]✓[/bright_green] Terminal growth rate: 3%\n"
+        "  [bright_green]✓[/bright_green] Discount rate (WACC): 9%\n\n"
+        "[bold bright_white]P/E Method:[/bold bright_white]\n"
+        "  [bright_yellow]✓[/bright_yellow] Consensus fair P/E: 22x (blend of auto maker and tech)\n"
+        "  [bright_yellow]✓[/bright_yellow] Current P/E: 16.2x\n"
+        "  [bright_yellow]✓[/bright_yellow] EPS basis: $14.7B net income / 3.179B shares\n\n"
+        "[bold bright_white]P/B Method:[/bold bright_white]\n"
+        "  [bright_cyan]✓[/bright_cyan] Fair value P/B: 3.5x (blend of asset/growth valuations)\n"
+        "  [bright_cyan]✓[/bright_cyan] Book value: $165B equity / 3.179B shares\n"
+        "  [bright_cyan]✓[/bright_cyan] Range: 2.5x (conservative) to 4.5x (optimistic)"
     )
-    assumptions_panel = Panel(assumptions_text, border_style="cyan", style="on black")
+    assumptions_panel = Panel(assumptions_text, border_style="bright_magenta", style="on black")
     console.print(assumptions_panel)
 
 def main():

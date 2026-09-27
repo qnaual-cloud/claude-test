@@ -2,6 +2,7 @@ import Link from "next/link";
 import { categories } from "@/content/categories";
 import { siteConfig } from "@/content/site.config";
 import { MembershipSection } from "@/components/MembershipSection";
+import { BuyCreditsSection } from "@/components/BuyCreditsSection";
 
 export default function Home() {
   return (
@@ -26,7 +27,11 @@ export default function Home() {
         ))}
       </div>
 
-      <div className="mt-14 border-t border-border pt-10">
+      <div id="buy-credits" className="mt-14 border-t border-border pt-10">
+        <BuyCreditsSection />
+      </div>
+
+      <div className="mt-8 border-t border-border pt-10">
         <MembershipSection />
       </div>
     </main>

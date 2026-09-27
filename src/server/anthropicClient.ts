@@ -21,6 +21,14 @@ const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 const PROSE_MAX_TOKENS = 4096;
 const DASHBOARD_MAX_TOKENS = 3072;
 
+// On by default so research reflects current information, not just the
+// model's training data. Adds metered cost per search on top of normal
+// token cost — set ANTHROPIC_ENABLE_WEB_SEARCH=false to disable.
+const WEB_SEARCH_ENABLED = process.env.ANTHROPIC_ENABLE_WEB_SEARCH !== "false";
+const WEB_SEARCH_TOOLS: Anthropic.ToolUnion[] = [
+  { type: "web_search_20260209", name: "web_search" },
+];
+
 export class AnalysisNotConfiguredError extends Error {}
 export class AnalysisFailedError extends Error {}
 
@@ -78,6 +86,7 @@ export async function runResearchAnalysis(input: RunAnalysisInput): Promise<RunA
           format: zodOutputFormat(DashboardSchema),
           effort: "medium",
         },
+        tools: WEB_SEARCH_ENABLED ? WEB_SEARCH_TOOLS : undefined,
         messages: [{ role: "user", content: input.prompt }],
       });
 
@@ -106,17 +115,27 @@ export async function runResearchAnalysis(input: RunAnalysisInput): Promise<RunA
       model: MODEL,
       max_tokens: PROSE_MAX_TOKENS,
       output_config: { effort: "medium" },
+      tools: WEB_SEARCH_ENABLED ? WEB_SEARCH_TOOLS : undefined,
       messages: [{ role: "user", content: input.prompt }],
     });
 
-    const textBlock = response.content.find((block) => block.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
+    // With web search enabled, content can include multiple text blocks
+    // interleaved with search-tool blocks (e.g. text before a search,
+    // more text after) — join all of them in order rather than taking
+    // just one, so nothing the model wrote gets silently dropped.
+    const text = response.content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text)
+      .join("\n\n")
+      .trim();
+
+    if (!text) {
       throw new AnalysisFailedError("The analysis came back empty. Please try again.");
     }
 
     return {
       resultType: "text",
-      text: textBlock.text,
+      text,
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,

@@ -12,6 +12,7 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { MarkdownLite } from "@/components/MarkdownLite";
 import { ResearchDashboard } from "@/components/ResearchDashboard";
 import type { DashboardData } from "@/server/dashboardSchema";
+import { notifyCreditsChanged } from "@/lib/creditsEvents";
 
 type StepKind = "entity" | "role" | "chips" | "format";
 type Phase = "form" | "loading" | "review" | "error";
@@ -83,6 +84,7 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
   const [analysisPhase, setAnalysisPhase] = useState<AnalysisPhase>("idle");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState("");
+  const [analysisErrorStatus, setAnalysisErrorStatus] = useState<number | null>(null);
 
   const [entitySingle, setEntitySingle] = useState("");
   const [entityItems, setEntityItems] = useState<EntityItem[]>(() => {
@@ -165,6 +167,7 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
     if (!result || !outputFormatId) return;
     setAnalysisPhase("running");
     setAnalysisError("");
+    setAnalysisErrorStatus(null);
     try {
       const res = await fetch("/api/run-analysis", {
         method: "POST",
@@ -177,11 +180,17 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Something went wrong.");
+      if (!res.ok) {
+        setAnalysisError(data.error || "Something went wrong.");
+        setAnalysisErrorStatus(res.status);
+        setAnalysisPhase("error");
+        return;
+      }
       setAnalysisResult(data);
       setAnalysisPhase("done");
-    } catch (err) {
-      setAnalysisError(err instanceof Error ? err.message : "Something went wrong.");
+      notifyCreditsChanged();
+    } catch {
+      setAnalysisError("Something went wrong.");
       setAnalysisPhase("error");
     }
   }
@@ -238,7 +247,27 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
           </button>
         </div>
 
-        {analysisPhase === "error" && <p className="text-sm text-red-600">{analysisError}</p>}
+        {analysisPhase === "error" && (
+          <p className="text-sm text-red-600">
+            {analysisError}
+            {analysisErrorStatus === 401 && (
+              <>
+                {" "}
+                <Link href="/login" className="font-medium underline">
+                  Log in
+                </Link>
+              </>
+            )}
+            {analysisErrorStatus === 402 && (
+              <>
+                {" "}
+                <Link href="/#buy-credits" className="font-medium underline">
+                  Buy credits
+                </Link>
+              </>
+            )}
+          </p>
+        )}
 
         {analysisPhase === "done" && analysisResult && (
           <div className="rounded-xl border border-border bg-card p-5">

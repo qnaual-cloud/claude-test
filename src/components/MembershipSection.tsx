@@ -7,9 +7,22 @@ import {
   defaultCurrency,
   type Currency,
 } from "@/content/membership.config";
+import { startCheckout } from "@/lib/startCheckout";
 
 export function MembershipSection() {
   const [currency, setCurrency] = useState<Currency>(defaultCurrency);
+  const [pendingTierId, setPendingTierId] = useState<string | null>(null);
+  const [errorByTier, setErrorByTier] = useState<Record<string, string>>({});
+
+  async function handleSubscribe(tierId: "member" | "professional") {
+    setPendingTierId(tierId);
+    setErrorByTier((prev) => ({ ...prev, [tierId]: "" }));
+    const result = await startCheckout({ type: "membership", tierId, currency });
+    if (!result.ok) {
+      setErrorByTier((prev) => ({ ...prev, [tierId]: result.error }));
+      setPendingTierId(null);
+    }
+  }
 
   return (
     <section className="flex flex-col gap-6">
@@ -40,6 +53,7 @@ export function MembershipSection() {
       <div className="grid gap-4 sm:grid-cols-3">
         {membershipTiers.map((tier) => {
           const amount = tier.price[currency];
+          const canSubscribe = tier.id !== "free";
           return (
             <div
               key={tier.id}
@@ -66,6 +80,21 @@ export function MembershipSection() {
                   </li>
                 ))}
               </ul>
+              {canSubscribe && (
+                <div className="mt-auto flex flex-col gap-1.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSubscribe(tier.id as "member" | "professional")}
+                    disabled={pendingTierId === tier.id}
+                    className="min-h-10 rounded-lg border border-accent px-4 py-2 text-sm font-medium text-accent hover:bg-accent/10 disabled:opacity-50"
+                  >
+                    {pendingTierId === tier.id ? "Redirecting…" : "Subscribe"}
+                  </button>
+                  {errorByTier[tier.id] && (
+                    <p className="text-xs text-red-600">{errorByTier[tier.id]}</p>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

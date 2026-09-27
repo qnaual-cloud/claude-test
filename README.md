@@ -27,12 +27,22 @@ result inside the app.
   below — this one is about *how you'd pay*, not *what you get*. See the
   comment at the top of that file before adding billing.
 - **`src/content/membership.config.ts`** — the membership tiers shown on
-  the home page (Free / Member / Professional): names, descriptions,
-  features, prices, and currency. **This is the one place to edit
-  pricing** — prices are intentionally blank (`null`) right now; fill in
-  a number and it appears, no other code changes needed.
+  the home page (Free / Member / Professional) and the "Buy Credits"
+  pack: names, descriptions, features, prices, currency, and Stripe
+  Price ids. **This is the one place to edit pricing** — prices and
+  Stripe price ids are intentionally blank right now; fill them in and
+  the Subscribe / Buy Credits buttons work immediately, no other code
+  changes needed.
 - **`src/server/dashboardSchema.ts`** and **`src/server/anthropicClient.ts`**
-  — the "Run Analysis" integration. Server-only.
+  — the "Run Analysis" integration (now with web search — see below).
+  Server-only.
+- **`src/lib/credits.ts`** — the credits ledger (balance, spend, refund,
+  grant). Server-only; always call with a user id you've already
+  verified via `getAuthenticatedUser()`.
+- **`sql/schema.sql`** — includes `profiles` and `credit_transactions`
+  plus the Postgres functions that change balances atomically. Run the
+  whole file (it's additive/idempotent) even if you already ran an
+  earlier version.
 
 Editing content in `src/content/*.ts` or `src/server/promptTemplates.ts`
 and pushing is enough to change categories, questions, or prompt wording
@@ -46,22 +56,60 @@ cp .env.example .env.local   # optional — see below
 npm run dev
 ```
 
-The app works fully without Supabase configured: early-access emails,
-feedback, and analytics writes are skipped (with a console warning)
-instead of failing. To enable them:
+### Accounts, login, and credits (Supabase)
 
-1. Create a Supabase project.
+1. Create a Supabase project (or reuse your existing one).
 2. Run `sql/schema.sql` against it (SQL editor, or `supabase db push`).
-3. Set `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in
-   `.env.local` (or your hosting provider's env vars). The service-role
-   key is read only in server-side code and must never be exposed to the
-   client.
+   This creates everything: early-access/feedback/analytics tables, and
+   the accounts/credits tables and functions.
+3. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
+   `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` (or your hosting
+   provider's env vars). The anon key is safe to expose to the browser
+   (it's used only for login/register); the service-role key must never
+   be exposed and is only read server-side.
 
-**Run Analysis** works the same way: without `ANTHROPIC_API_KEY` set, the
-button shows a friendly "not configured" message instead of failing.
-Every click that succeeds is a real, billed Claude API call — see
+Without these three set, login/register show a "not configured" message
+and Run Analysis can't be used (it requires being signed in). Early
+access, feedback, and analytics still degrade gracefully as before.
+
+New accounts get **5 free credits automatically** (see the
+`handle_new_user` trigger in `sql/schema.sql`). To manually add credits
+for a specific user (e.g. a tester, or a support gesture) — there's no
+admin UI for this yet, so do it directly in the Supabase SQL editor:
+
+```sql
+select grant_credits('<user-uuid>', 10, 'manual_grant');
+```
+
+### Run Analysis (Claude API + web search)
+
+Set `ANTHROPIC_API_KEY` to enable it; without it, the button shows a
+friendly "not configured" message. Every successful analysis spends 1
+credit and is a real, billed Claude API call — see
 `src/server/anthropicClient.ts` for the model default and cost notes.
-There is no per-user rate limit yet.
+**Web search is on by default** so research reflects current
+information, not just training data — this adds metered search cost on
+top of normal token cost; set `ANTHROPIC_ENABLE_WEB_SEARCH=false` to
+disable it. There is still no per-account rate limit beyond the credit
+balance itself.
+
+### Payments (Stripe)
+
+1. Create a Stripe account (or use your existing one) and, in test mode
+   first, create the Prices you want (one-time for the credit pack,
+   recurring for each membership tier you're ready to sell) — remember
+   Stripe prices are currency-specific, so create one per currency you
+   support.
+2. Paste each Price id into `src/content/membership.config.ts`.
+3. Set `STRIPE_SECRET_KEY` in your env vars.
+4. Create a webhook endpoint in Stripe pointing at
+   `<your-domain>/api/stripe/webhook`, subscribed to
+   `checkout.session.completed`, and set `STRIPE_WEBHOOK_SECRET` to its
+   signing secret.
+
+Until these are set, Subscribe and Buy Credits show "not available yet"
+instead of erroring. The webhook verifies Stripe's signature before
+trusting anything in the payload — never skip `STRIPE_WEBHOOK_SECRET`.
 
 ## What's in the app
 
@@ -74,23 +122,31 @@ There is no per-user rate limit yet.
 - Server-side prompt assembly — the prompt template library is never
   shipped to the browser
 - Copy Prompt button, collapsed "why this works" explanation
-- **Run Analysis** — runs the generated prompt against the Claude API and
-  shows the formatted result in-app (prose for Summary/Full Report/Memo,
-  a visual dashboard for Research Dashboard) while keeping the prompt
-  itself visible for learning
+- **Login / Register** (Supabase Auth, email + password) and a sitewide
+  greeting ("Hello, {name}. What can I help you with today?") once
+  signed in
+- **Run Analysis** — spends 1 credit, runs the generated prompt against
+  the Claude API (with web search) and shows the formatted result
+  in-app (prose for Summary/Full Report/Memo, a visual dashboard for
+  Research Dashboard) while keeping the prompt itself visible for
+  learning. A failed analysis refunds the credit; credit spending is
+  atomic and safe under concurrent requests.
+- **Buy Credits** and **membership Subscribe buttons**, wired to real
+  Stripe Checkout sessions (env-gated — see above)
 - A membership section (Free / Member / Professional) with a GBP/USD
-  toggle — display only, no prices yet, no real tier gating
+  toggle, prices blank until you set them
 - Early-access email capture and a lightweight thumbs up/down + comment
   feedback widget
 - Lightweight, privacy-conscious usage analytics (category, chips,
   output format, voice vs. typed, Run Analysis token usage — no prompt
   or result content stored by default)
-- No payments, no login wall, no real per-tier access control
 
 ## What's deliberately not built yet
 
 Advanced mode, saved/reusable prompts, prompt quality scoring, multi-step
-workflows, a second vertical, real subscription billing, and real
-account-based tier gating (there's no login system at all) are out of
-scope. Don't add them without approval — see `src/lib/subscriptions.ts`
+workflows, a second vertical, an admin UI (for manually granting credits
+or managing users), recurring credit top-ups on subscription renewal
+beyond the initial grant, sign-up abuse prevention (CAPTCHA/email-verify
+enforcement), and per-account rate limiting beyond the credit balance are
+out of scope. Don't add them without approval — see `src/lib/subscriptions.ts`
 and `src/content/membership.config.ts` for what's already scaffolded.

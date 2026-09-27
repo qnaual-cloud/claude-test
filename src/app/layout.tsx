@@ -4,6 +4,7 @@ import "./globals.css";
 import { siteConfig } from "@/content/site.config";
 import { EarlyAccessBanner } from "@/components/EarlyAccessBanner";
 import { Footer } from "@/components/Footer";
+import { AccountHeader } from "@/components/AccountHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <AccountHeader />
         {children}
         <div className="mx-auto w-full max-w-2xl px-4 pb-8">
           <EarlyAccessBanner />

@@ -19,7 +19,13 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 let client: SupabaseClient | null = null;
 
-function getClient(): SupabaseClient | null {
+/**
+ * Shared service-role client, also used by src/lib/credits.ts. Bypasses
+ * RLS — only ever call this from server-side code, never expose it or
+ * its results based on a client-supplied user id without verifying the
+ * caller's own session first (see getAuthenticatedUser()).
+ */
+export function getServiceRoleClient(): SupabaseClient | null {
   if (!supabaseUrl || !serviceRoleKey) return null;
   if (!client) {
     client = createClient(supabaseUrl, serviceRoleKey, {
@@ -36,7 +42,7 @@ function warnNotConfigured(action: string) {
 }
 
 export async function insertEarlyAccessEmail(email: string): Promise<void> {
-  const db = getClient();
+  const db = getServiceRoleClient();
   if (!db) return warnNotConfigured("insertEarlyAccessEmail");
   const { error } = await db.from("early_access_emails").insert({ email });
   if (error) console.error("[supabase] insertEarlyAccessEmail failed:", error.message);
@@ -50,7 +56,7 @@ export interface FeedbackInput {
 }
 
 export async function insertFeedback(input: FeedbackInput): Promise<void> {
-  const db = getClient();
+  const db = getServiceRoleClient();
   if (!db) return warnNotConfigured("insertFeedback");
   const { error } = await db.from("feedback").insert({
     session_id: input.sessionId,
@@ -69,7 +75,7 @@ export interface AnalyticsEventInput {
 }
 
 export async function logAnalyticsEvent(input: AnalyticsEventInput): Promise<void> {
-  const db = getClient();
+  const db = getServiceRoleClient();
   if (!db) return warnNotConfigured("logAnalyticsEvent");
   const { error } = await db.from("analytics_events").insert({
     session_id: input.sessionId,

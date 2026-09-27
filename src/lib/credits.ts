@@ -114,3 +114,64 @@ export async function setMembershipTier(
   const { error } = await db.rpc("set_membership_tier", { p_user_id: userId, p_tier: tier });
   if (error) console.error("[credits] setMembershipTier failed:", error.message);
 }
+
+export interface AdminProfileRow {
+  id: string;
+  email: string | null;
+  fullName: string;
+  creditsBalance: number;
+  membershipTier: "free" | "member" | "professional";
+}
+
+/** Admin-only: finds users by email (substring match). Caller must have already verified admin access. */
+export async function searchProfiles(query: string, limit = 25): Promise<AdminProfileRow[]> {
+  const db = getServiceRoleClient();
+  if (!db) throw new CreditsNotConfiguredError("Accounts aren't configured yet.");
+
+  const { data, error } = await db
+    .from("profiles")
+    .select("id, email, full_name, credits_balance, membership_tier")
+    .ilike("email", `%${query}%`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[credits] searchProfiles failed:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    email: row.email,
+    fullName: row.full_name,
+    creditsBalance: row.credits_balance,
+    membershipTier: row.membership_tier,
+  }));
+}
+
+/**
+ * Admin-only: adjusts a user's balance by a +/- amount (clamped at 0 —
+ * see admin_adjust_credits in sql/schema.sql). Caller must have already
+ * verified admin access; pass the admin's own email for the audit log.
+ */
+export async function adminAdjustCredits(
+  userId: string,
+  amount: number,
+  adminEmail: string,
+  note?: string
+): Promise<number | null> {
+  const db = getServiceRoleClient();
+  if (!db) throw new CreditsNotConfiguredError("Accounts aren't configured yet.");
+
+  const { data, error } = await db.rpc("admin_adjust_credits", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_admin_email: adminEmail,
+    p_note: note ?? null,
+  });
+  if (error) {
+    console.error("[credits] adminAdjustCredits failed:", error.message);
+    return null;
+  }
+  return data as number | null;
+}

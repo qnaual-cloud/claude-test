@@ -3,7 +3,7 @@
 import type { Currency } from "@/content/membership.config";
 
 type CheckoutRequest =
-  | { type: "credit_pack"; currency: Currency }
+  | { type: "credit_pack"; packId: string; currency: Currency }
   | { type: "membership"; tierId: "member" | "professional"; currency: Currency };
 
 /** POSTs to /api/stripe/checkout and redirects to Stripe on success. */

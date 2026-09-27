@@ -72,14 +72,46 @@ Without these three set, login/register show a "not configured" message
 and Run Analysis can't be used (it requires being signed in). Early
 access, feedback, and analytics still degrade gracefully as before.
 
-New accounts get **5 free credits automatically** (see the
-`handle_new_user` trigger in `sql/schema.sql`). To manually add credits
-for a specific user (e.g. a tester, or a support gesture) — there's no
-admin UI for this yet, so do it directly in the Supabase SQL editor:
+New accounts get **5 free credits once they confirm their email** — not
+immediately at signup (see "Protecting the free credits" below). To
+manually add or adjust credits for a specific user, use the admin area
+(see below) rather than SQL directly.
 
-```sql
-select grant_credits('<user-uuid>', 10, 'manual_grant');
-```
+### Admin area
+
+Visit `/admin` (not linked anywhere in the UI — go there directly).
+Set `ADMIN_EMAILS` to your own account's email (comma-separated for more
+than one) — there's no roles system, just this allowlist, checked
+server-side on every admin request, not just when the page renders.
+From there you can search users by email and add or subtract credits
+with a note. Membership tier prices/credit-allowances are shown
+read-only, sourced from `src/content/membership.config.ts` — edit that
+file to change them.
+
+### Protecting the free credits
+
+Two things work together here:
+
+1. **Email confirmation is required before the 5 credits are granted.**
+   This only takes effect once you turn on **Confirm email** in your
+   Supabase project (Authentication → Providers → Email → toggle "Confirm
+   email"). Until you do, Supabase confirms new accounts immediately and
+   the bonus is granted right away, same as before this change.
+2. **Disposable email domains are blocked from getting the bonus** — see
+   the `blocked_email_domains` table in `sql/schema.sql` (seeded with a
+   short list of common ones). Add more any time:
+   ```sql
+   insert into blocked_email_domains (domain) values ('example.com');
+   ```
+   A blocked-domain account still works (0 starting credits, can still
+   buy credits) — it's just not silently trusted with the free bonus.
+
+**What this doesn't cover:** someone willing to use several different
+real email addresses can still get multiple bonuses — there's no
+IP/device-based signup throttling. Adding that would mean routing
+registration through our own server (using Supabase's Admin API) instead
+of the standard client-side sign-up flow this app uses, which is a
+larger, separate change.
 
 ### Run Analysis (Claude API + web search)
 
@@ -96,10 +128,12 @@ balance itself.
 ### Payments (Stripe)
 
 1. Create a Stripe account (or use your existing one) and, in test mode
-   first, create the Prices you want (one-time for the credit pack,
-   recurring for each membership tier you're ready to sell) — remember
-   Stripe prices are currency-specific, so create one per currency you
-   support.
+   first, create the Prices you want (one-time for each credit pack in
+   `creditPacks`, recurring for each membership tier you're ready to
+   sell) — remember Stripe prices are currency-specific, so create one
+   per currency you support. Packages and prices aren't decided yet —
+   `creditPacks` in `membership.config.ts` already supports adding more
+   than the one pack there today, whenever you're ready.
 2. Paste each Price id into `src/content/membership.config.ts`.
 3. Set `STRIPE_SECRET_KEY` in your env vars.
 4. Create a webhook endpoint in Stripe pointing at
@@ -110,6 +144,14 @@ balance itself.
 Until these are set, Subscribe and Buy Credits show "not available yet"
 instead of erroring. The webhook verifies Stripe's signature before
 trusting anything in the payload — never skip `STRIPE_WEBHOOK_SECRET`.
+
+**Payment methods:** Checkout is configured for cards (`payment_method_types:
+["card"]` in `src/app/api/stripe/checkout/route.ts`). Apple Pay and
+Google Pay aren't separate entries — Stripe Checkout shows them
+automatically as wallet buttons on top of "card" for buyers whose
+browser/device supports them, with no extra setup needed since Checkout
+is hosted on Stripe's own domain. Add other method types to that one
+array later (e.g. `"klarna"`) once you decide to support them.
 
 ## What's in the app
 
@@ -131,8 +173,12 @@ trusting anything in the payload — never skip `STRIPE_WEBHOOK_SECRET`.
   Research Dashboard) while keeping the prompt itself visible for
   learning. A failed analysis refunds the credit; credit spending is
   atomic and safe under concurrent requests.
-- **Buy Credits** and **membership Subscribe buttons**, wired to real
-  Stripe Checkout sessions (env-gated — see above)
+- **Buy Credits** (any number of packages — see `creditPacks`) and
+  **membership Subscribe buttons**, wired to real Stripe Checkout
+  sessions supporting cards plus Apple Pay/Google Pay (env-gated — see
+  above)
+- **Admin area** (`/admin`, email-allowlisted) to search users and
+  manually add or adjust credit balances
 - A membership section (Free / Member / Professional) with a GBP/USD
   toggle, prices blank until you set them
 - Early-access email capture and a lightweight thumbs up/down + comment
@@ -144,9 +190,9 @@ trusting anything in the payload — never skip `STRIPE_WEBHOOK_SECRET`.
 ## What's deliberately not built yet
 
 Advanced mode, saved/reusable prompts, prompt quality scoring, multi-step
-workflows, a second vertical, an admin UI (for manually granting credits
-or managing users), recurring credit top-ups on subscription renewal
-beyond the initial grant, sign-up abuse prevention (CAPTCHA/email-verify
-enforcement), and per-account rate limiting beyond the credit balance are
-out of scope. Don't add them without approval — see `src/lib/subscriptions.ts`
-and `src/content/membership.config.ts` for what's already scaffolded.
+workflows, a second vertical, recurring credit top-ups on subscription
+renewal beyond the initial grant, IP/device-based signup throttling (see
+"Protecting the free credits" above for why), and per-account rate
+limiting beyond the credit balance are out of scope. Don't add them
+without approval — see `src/lib/subscriptions.ts` and
+`src/content/membership.config.ts` for what's already scaffolded.

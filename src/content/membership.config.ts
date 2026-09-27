@@ -91,6 +91,7 @@ export const membershipTiers: MembershipTier[] = [
 ];
 
 export interface CreditPack {
+  id: string;
   name: string;
   credits: number;
   price: Record<Currency, number | null>;
@@ -98,10 +99,18 @@ export interface CreditPack {
   stripePriceId: Record<Currency, string | null>;
 }
 
-/** The single "Buy Credits" pack offered today. Add more packs later if needed. */
-export const creditPack: CreditPack = {
-  name: "Credit pack",
-  credits: 20,
-  price: { GBP: null, USD: null },
-  stripePriceId: { GBP: null, USD: null },
-};
+/**
+ * "Buy Credits" packages. One pack today — packages and prices aren't
+ * decided yet, so add more entries here later (e.g. a larger pack) once
+ * they are; the checkout route and Buy Credits UI both already support
+ * any number of packs.
+ */
+export const creditPacks: CreditPack[] = [
+  {
+    id: "standard",
+    name: "Credit pack",
+    credits: 20,
+    price: { GBP: null, USD: null },
+    stripePriceId: { GBP: null, USD: null },
+  },
+];

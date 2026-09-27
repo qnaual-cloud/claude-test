@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripeClient } from "@/lib/stripeServer";
 import { grantCredits, setMembershipTier } from "@/lib/credits";
-import { membershipTiers } from "@/content/membership.config";
+import { membershipTiers, creditPacks } from "@/content/membership.config";
 
 /**
  * Stripe calls this directly — there is no user session here. Trust
@@ -42,11 +42,17 @@ export async function POST(request: Request) {
     }
 
     if (session.metadata?.type === "credit_pack") {
-      const credits = parseInt(session.metadata.credits ?? "0", 10);
-      if (credits > 0) {
-        await grantCredits(userId, credits, "purchase", event.id, {
+      // Re-derive the credit amount from our own config by packId rather
+      // than trusting a number carried in metadata — a single source of
+      // truth for "how many credits does this pack grant".
+      const pack = creditPacks.find((p) => p.id === session.metadata?.packId);
+      if (pack) {
+        await grantCredits(userId, pack.credits, "purchase", event.id, {
           checkoutSessionId: session.id,
+          packId: pack.id,
         });
+      } else {
+        console.error("[stripe-webhook] unknown packId in metadata:", session.metadata?.packId);
       }
     }
 

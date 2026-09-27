@@ -18,7 +18,24 @@
  * Stripe prices are currency-specific), paste its id in here and the
  * Subscribe / Buy Credits buttons start working automatically. Until
  * then they show "not available yet" instead of erroring.
+ *
+ * PAYMENTS_ENABLED below is the actual safety switch, separate from
+ * stripePriceId — see its own comment.
  */
+
+/**
+ * ============================================================
+ *  THE testing-period safety switch — read before touching prices.
+ * ============================================================
+ * While this is false, /api/stripe/checkout refuses every checkout
+ * request (both Buy Credits and Subscribe) before it ever looks at a
+ * Stripe price id, and tells the tester sign-up isn't open yet. This is
+ * what lets beta pricing be visible below WITHOUT risking a real charge
+ * — it does not depend on remembering to leave stripePriceId blank.
+ * Flip to true only when you are ready to accept real payments AND have
+ * filled in real Stripe price ids above.
+ */
+export const PAYMENTS_ENABLED = false;
 
 export type Currency = "GBP" | "USD";
 
@@ -68,10 +85,16 @@ export const membershipTiers: MembershipTier[] = [
       "Run Analysis — see results inside the app",
       "Research Dashboard format",
     ],
-    price: { GBP: null, USD: null },
+    // Proposed beta pricing — GBP only for now; edit freely, this is not final.
+    price: { GBP: 9.99, USD: null },
     priceSuffix: "/month",
     stripePriceId: { GBP: null, USD: null },
-    creditAllowance: 0,
+    // "Analyses per month" shown in the UI. Note: this app does not yet
+    // automatically re-grant this allowance every billing cycle — only
+    // once, when a subscription first activates (see README). That's
+    // moot while PAYMENTS_ENABLED is false, since no real subscription
+    // can start yet, but worth building before going live.
+    creditAllowance: 20,
     highlighted: true,
   },
   {
@@ -83,10 +106,11 @@ export const membershipTiers: MembershipTier[] = [
       "Priority analysis depth",
       "Early access to new research modules",
     ],
-    price: { GBP: null, USD: null },
+    // Proposed beta pricing — GBP only for now; edit freely, this is not final.
+    price: { GBP: 24.99, USD: null },
     priceSuffix: "/month",
     stripePriceId: { GBP: null, USD: null },
-    creditAllowance: 0,
+    creditAllowance: 60,
   },
 ];
 

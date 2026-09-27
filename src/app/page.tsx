@@ -31,7 +31,7 @@ export default function Home() {
         <BuyCreditsSection />
       </div>
 
-      <div className="mt-8 border-t border-border pt-10">
+      <div id="membership" className="mt-8 border-t border-border pt-10">
         <MembershipSection />
       </div>
     </main>

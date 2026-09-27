@@ -32,4 +32,12 @@ export const siteConfig = {
   },
 
   whyItWorksLabel: "Why this prompt works",
+
+  /** Shown when Run Analysis is attempted with 0 credits left. Edit freely. */
+  outOfCredits: {
+    title: "Continue Your Research",
+    body: "You've used all of your available analyses. Choose an option below to keep going.",
+    buyCreditsLabel: "Buy Credits",
+    viewMembershipsLabel: "View Memberships",
+  },
 } as const;

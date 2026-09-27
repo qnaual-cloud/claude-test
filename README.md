@@ -127,23 +127,33 @@ balance itself.
 
 ### Payments (Stripe)
 
+**Testers can see proposed beta pricing right now (Member £9.99/mo for 20
+analyses, Professional £24.99/mo for 60) without any risk of a real
+charge**, because `PAYMENTS_ENABLED` in `src/content/membership.config.ts`
+is `false`. That single switch makes `/api/stripe/checkout` refuse every
+request before it even looks at a Stripe price id — it does not depend
+on leaving price ids blank, so displaying real proposed prices during
+testing is safe. Prices, the analyses-per-month figure
+(`creditAllowance`), and this switch are all in that one file.
+
+When you're ready to actually accept payments:
+
 1. Create a Stripe account (or use your existing one) and, in test mode
    first, create the Prices you want (one-time for each credit pack in
-   `creditPacks`, recurring for each membership tier you're ready to
-   sell) — remember Stripe prices are currency-specific, so create one
-   per currency you support. Packages and prices aren't decided yet —
-   `creditPacks` in `membership.config.ts` already supports adding more
-   than the one pack there today, whenever you're ready.
+   `creditPacks`, recurring for each membership tier) — Stripe prices are
+   currency-specific, so create one per currency you support.
 2. Paste each Price id into `src/content/membership.config.ts`.
 3. Set `STRIPE_SECRET_KEY` in your env vars.
 4. Create a webhook endpoint in Stripe pointing at
    `<your-domain>/api/stripe/webhook`, subscribed to
    `checkout.session.completed`, and set `STRIPE_WEBHOOK_SECRET` to its
    signing secret.
+5. Only then, flip `PAYMENTS_ENABLED` to `true`.
 
-Until these are set, Subscribe and Buy Credits show "not available yet"
-instead of erroring. The webhook verifies Stripe's signature before
-trusting anything in the payload — never skip `STRIPE_WEBHOOK_SECRET`.
+Even with all of the above done, until `PAYMENTS_ENABLED` is `true`,
+Subscribe and Buy Credits show "sign-up isn't open yet" instead of
+charging anyone. The webhook verifies Stripe's signature before trusting
+anything in the payload — never skip `STRIPE_WEBHOOK_SECRET`.
 
 **Payment methods:** Checkout is configured for cards (`payment_method_types:
 ["card"]` in `src/app/api/stripe/checkout/route.ts`). Apple Pay and
@@ -175,8 +185,11 @@ array later (e.g. `"klarna"`) once you decide to support them.
   atomic and safe under concurrent requests.
 - **Buy Credits** (any number of packages — see `creditPacks`) and
   **membership Subscribe buttons**, wired to real Stripe Checkout
-  sessions supporting cards plus Apple Pay/Google Pay (env-gated — see
-  above)
+  sessions supporting cards plus Apple Pay/Google Pay (env-gated, and
+  additionally held off by `PAYMENTS_ENABLED` during testing — see above)
+- A **"Continue Your Research" notice** when Run Analysis is attempted
+  at 0 credits, offering Buy Credits / View Memberships — wording in
+  `siteConfig.outOfCredits`
 - **Admin area** (`/admin`, email-allowlisted) to search users and
   manually add or adjust credit balances
 - A membership section (Free / Member / Professional) with a GBP/USD

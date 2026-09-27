@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripeClient } from "@/lib/stripeServer";
 import { getAuthenticatedUser } from "@/lib/supabaseServerAuth";
-import { membershipTiers, creditPacks, type Currency } from "@/content/membership.config";
+import { membershipTiers, creditPacks, PAYMENTS_ENABLED, type Currency } from "@/content/membership.config";
 
 interface RequestBody {
   type?: "credit_pack" | "membership";
@@ -24,6 +24,17 @@ export async function POST(request: Request) {
   const user = await getAuthenticatedUser();
   if (!user) {
     return NextResponse.json({ error: "Please log in first." }, { status: 401 });
+  }
+
+  // The testing-period safety switch — see its comment in
+  // membership.config.ts. Checked before anything else, including
+  // whether a Stripe price id is even connected, so pricing can be
+  // shown to testers with zero risk of a real charge.
+  if (!PAYMENTS_ENABLED) {
+    return NextResponse.json(
+      { error: "Sign-up isn't open yet — we're still in testing. Check back soon." },
+      { status: 503 }
+    );
   }
 
   const stripe = getStripeClient();

@@ -29,7 +29,9 @@ export function MembershipSection() {
       <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
         <div>
           <h2 className="text-xl font-semibold text-foreground">Membership</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Pricing coming soon.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Proposed beta pricing — sign-up isn&apos;t open yet during testing.
+          </p>
         </div>
         <div className="inline-flex rounded-lg border border-border bg-card p-1">
           {(["GBP", "USD"] as Currency[]).map((c) => (
@@ -72,6 +74,11 @@ export function MembershipSection() {
                   {tier.priceSuffix}
                 </span>
               </p>
+              {tier.creditAllowance > 0 && (
+                <p className="text-sm font-medium text-accent">
+                  {tier.creditAllowance} analyses / month
+                </p>
+              )}
               <ul className="flex flex-col gap-1.5 text-sm text-foreground">
                 {tier.features.map((feature) => (
                   <li key={feature} className="flex gap-2">

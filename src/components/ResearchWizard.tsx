@@ -11,6 +11,7 @@ import { ProgressSteps } from "@/components/ProgressSteps";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { MarkdownLite } from "@/components/MarkdownLite";
 import { ResearchDashboard } from "@/components/ResearchDashboard";
+import { OutOfCreditsNotice } from "@/components/OutOfCreditsNotice";
 import type { DashboardData } from "@/server/dashboardSchema";
 import { notifyCreditsChanged } from "@/lib/creditsEvents";
 
@@ -247,26 +248,22 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
           </button>
         </div>
 
-        {analysisPhase === "error" && (
-          <p className="text-sm text-red-600">
-            {analysisError}
-            {analysisErrorStatus === 401 && (
-              <>
-                {" "}
-                <Link href="/login" className="font-medium underline">
-                  Log in
-                </Link>
-              </>
-            )}
-            {analysisErrorStatus === 402 && (
-              <>
-                {" "}
-                <Link href="/#buy-credits" className="font-medium underline">
-                  Buy credits
-                </Link>
-              </>
-            )}
-          </p>
+        {analysisPhase === "error" && analysisErrorStatus === 402 ? (
+          <OutOfCreditsNotice />
+        ) : (
+          analysisPhase === "error" && (
+            <p className="text-sm text-red-600">
+              {analysisError}
+              {analysisErrorStatus === 401 && (
+                <>
+                  {" "}
+                  <Link href="/login" className="font-medium underline">
+                    Log in
+                  </Link>
+                </>
+              )}
+            </p>
+          )
         )}
 
         {analysisPhase === "done" && analysisResult && (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { categories } from "@/content/categories";
 import { siteConfig } from "@/content/site.config";
+import { MembershipSection } from "@/components/MembershipSection";
 
 export default function Home() {
   return (
@@ -23,6 +24,10 @@ export default function Home() {
             <p className="mt-1 text-sm text-muted-foreground">{category.description}</p>
           </Link>
         ))}
+      </div>
+
+      <div className="mt-14 border-t border-border pt-10">
+        <MembershipSection />
       </div>
     </main>
   );

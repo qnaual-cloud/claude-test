@@ -61,6 +61,8 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "full-report":
         "Present the findings as a full structured report with clear section headings.",
       memo: "Present the findings as an investment memo suitable for sharing with another investor.",
+      "research-dashboard":
+        "Present the findings as a structured research dashboard: a one-line headline verdict, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the analysis — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear analyst role and objective",
@@ -94,6 +96,8 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
         "Present the findings as a full structured report with clear section headings.",
       "step-by-step":
         "Walk through the valuation step by step, showing the calculation logic at each stage, not just the final numbers.",
+      "research-dashboard":
+        "Present the findings as a structured research dashboard: a one-line headline verdict on valuation, 3-6 key metrics with values (e.g. estimated intrinsic value, current price, margin of safety), a short list of strengths, a short list of risks, and the key sections of the analysis — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear valuation-analyst role and objective",
@@ -124,6 +128,8 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "full-report":
         "Present the findings as a full structured report with clear section headings.",
       memo: "Present the findings as an investment memo suitable for sharing with another investor.",
+      "research-dashboard":
+        "Present the findings as a structured research dashboard: a one-line headline verdict on which investment looks stronger and why, 3-6 key comparison metrics with values for each investment, a short list of strengths, a short list of risks, and the key sections of the comparison — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear comparative-analyst role and objective",
@@ -153,6 +159,8 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       summary: "Present the findings as a concise summary (roughly 200-300 words).",
       "full-report":
         "Present the findings as a full structured report with clear section headings.",
+      "research-dashboard":
+        "Present the findings as a structured research dashboard: a one-line headline verdict on the results, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the analysis — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear markets-analyst role and objective",
@@ -192,6 +200,8 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
         "Present the findings as a full structured report with clear section headings.",
       "action-checklist":
         "Present the findings as a short, prioritized checklist of concrete actions to consider.",
+      "research-dashboard":
+        "Present the findings as a structured research dashboard: a one-line headline verdict on portfolio health, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the review — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear portfolio-analyst role and objective",

@@ -9,14 +9,22 @@ import { RepeatableEntityList } from "@/components/RepeatableEntityList";
 import { ChipSelect } from "@/components/ChipSelect";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { MarkdownLite } from "@/components/MarkdownLite";
+import { ResearchDashboard } from "@/components/ResearchDashboard";
+import type { DashboardData } from "@/server/dashboardSchema";
 
 type StepKind = "entity" | "role" | "chips" | "format";
 type Phase = "form" | "loading" | "review" | "error";
+type AnalysisPhase = "idle" | "running" | "done" | "error";
 
 interface GenerateResult {
   prompt: string;
   whyItWorks: string[];
 }
+
+type AnalysisResult =
+  | { resultType: "dashboard"; dashboard: DashboardData }
+  | { resultType: "text"; text: string };
 
 function createSessionId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -72,6 +80,9 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
   const [showWhyItWorks, setShowWhyItWorks] = useState(false);
   const [copied, setCopied] = useState(false);
   const [usedVoice, setUsedVoice] = useState(false);
+  const [analysisPhase, setAnalysisPhase] = useState<AnalysisPhase>("idle");
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisError, setAnalysisError] = useState("");
 
   const [entitySingle, setEntitySingle] = useState("");
   const [entityItems, setEntityItems] = useState<EntityItem[]>(() => {
@@ -150,6 +161,31 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function handleRunAnalysis() {
+    if (!result || !outputFormatId) return;
+    setAnalysisPhase("running");
+    setAnalysisError("");
+    try {
+      const res = await fetch("/api/run-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: result.prompt,
+          categoryId: category.id,
+          outputFormatId,
+          sessionId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Something went wrong.");
+      setAnalysisResult(data);
+      setAnalysisPhase("done");
+    } catch (err) {
+      setAnalysisError(err instanceof Error ? err.message : "Something went wrong.");
+      setAnalysisPhase("error");
+    }
+  }
+
   function handleStartOver() {
     setPhase("form");
     setStepIndex(0);
@@ -165,6 +201,9 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
     setChipIds([]);
     setOutputFormatId(undefined);
     setUsedVoice(false);
+    setAnalysisPhase("idle");
+    setAnalysisResult(null);
+    setAnalysisError("");
   }
 
   if (phase === "review" && result) {
@@ -181,13 +220,38 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
           </pre>
         </div>
 
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="min-h-11 self-start rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
-        >
-          {copied ? "Copied!" : "Copy Prompt"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="min-h-11 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+          >
+            {copied ? "Copied!" : "Copy Prompt"}
+          </button>
+          <button
+            type="button"
+            onClick={handleRunAnalysis}
+            disabled={analysisPhase === "running"}
+            className="min-h-11 rounded-lg border border-accent px-5 py-2.5 text-sm font-medium text-accent hover:bg-accent/10 disabled:opacity-50"
+          >
+            {analysisPhase === "running" ? "Analyzing…" : "Run Analysis"}
+          </button>
+        </div>
+
+        {analysisPhase === "error" && <p className="text-sm text-red-600">{analysisError}</p>}
+
+        {analysisPhase === "done" && analysisResult && (
+          <div className="rounded-xl border border-border bg-card p-5">
+            <p className="mb-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Research Result
+            </p>
+            {analysisResult.resultType === "dashboard" ? (
+              <ResearchDashboard data={analysisResult.dashboard} />
+            ) : (
+              <MarkdownLite text={analysisResult.text} />
+            )}
+          </div>
+        )}
 
         <div>
           <button

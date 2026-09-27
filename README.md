@@ -1,9 +1,8 @@
-# AI Investment Research Assistant (V1)
+# AI Investment Research Assistant
 
 A guided assistant that turns "what do I want to research?" into a
-professional, structured prompt to paste into Claude, ChatGPT, or any
-other AI model. V1 does not run AI inside the app — it only builds the
-prompt and lets you copy it.
+professional, structured prompt — and, optionally, runs it and shows the
+result inside the app.
 
 ## How it's organized (what's safe to edit, and where)
 
@@ -23,10 +22,17 @@ prompt and lets you copy it.
 - **`src/server/promptEngine.ts`** — assembles a category + answers into
   a finished prompt. Deterministic template assembly, not an AI call —
   there is no LLM API cost to generate a prompt in v1.
-- **`src/lib/subscriptions.ts`** — subscription scaffolding, **not
-  active**. Free/Monthly/Annual plans are defined but only Free does
-  anything in v1. See the comment at the top of that file before adding
-  billing.
+- **`src/lib/subscriptions.ts`** — billing-cadence scaffolding (Free /
+  Monthly / Annual), **not active**. Distinct from the membership tiers
+  below — this one is about *how you'd pay*, not *what you get*. See the
+  comment at the top of that file before adding billing.
+- **`src/content/membership.config.ts`** — the membership tiers shown on
+  the home page (Free / Member / Professional): names, descriptions,
+  features, prices, and currency. **This is the one place to edit
+  pricing** — prices are intentionally blank (`null`) right now; fill in
+  a number and it appears, no other code changes needed.
+- **`src/server/dashboardSchema.ts`** and **`src/server/anthropicClient.ts`**
+  — the "Run Analysis" integration. Server-only.
 
 Editing content in `src/content/*.ts` or `src/server/promptTemplates.ts`
 and pushing is enough to change categories, questions, or prompt wording
@@ -51,25 +57,40 @@ instead of failing. To enable them:
    key is read only in server-side code and must never be exposed to the
    client.
 
-## What's in v1
+**Run Analysis** works the same way: without `ANTHROPIC_API_KEY` set, the
+button shows a friendly "not configured" message instead of failing.
+Every click that succeeds is a real, billed Claude API call — see
+`src/server/anthropicClient.ts` for the model default and cost notes.
+There is no per-user rate limit yet.
+
+## What's in the app
 
 - 5 guided research flows (Company Research, Valuation & DCF, Compare
-  Investments, Earnings & Market Analysis, Portfolio Research)
+  Investments, Earnings & Market Analysis, Portfolio Research), each with
+  4 output formats: Summary, Full Report, Memo, and Research Dashboard
 - Typed and voice input (browser-native Web Speech API — free, no
   backend cost; the mic button only appears where the browser supports
   it, and typing always works)
 - Server-side prompt assembly — the prompt template library is never
   shipped to the browser
 - Copy Prompt button, collapsed "why this works" explanation
+- **Run Analysis** — runs the generated prompt against the Claude API and
+  shows the formatted result in-app (prose for Summary/Full Report/Memo,
+  a visual dashboard for Research Dashboard) while keeping the prompt
+  itself visible for learning
+- A membership section (Free / Member / Professional) with a GBP/USD
+  toggle — display only, no prices yet, no real tier gating
 - Early-access email capture and a lightweight thumbs up/down + comment
   feedback widget
 - Lightweight, privacy-conscious usage analytics (category, chips,
-  output format, voice vs. typed — no prompt content stored by default)
-- No AI execution in-app, no payments, no login wall
+  output format, voice vs. typed, Run Analysis token usage — no prompt
+  or result content stored by default)
+- No payments, no login wall, no real per-tier access control
 
 ## What's deliberately not built yet
 
 Advanced mode, saved/reusable prompts, prompt quality scoring, multi-step
-workflows, a second vertical, and subscriptions/billing are out of scope
-for v1. Don't add them without approval — see `src/lib/subscriptions.ts`
-for the documented (but inactive) future plan structure.
+workflows, a second vertical, real subscription billing, and real
+account-based tier gating (there's no login system at all) are out of
+scope. Don't add them without approval — see `src/lib/subscriptions.ts`
+and `src/content/membership.config.ts` for what's already scaffolded.

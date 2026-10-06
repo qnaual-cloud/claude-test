@@ -58,6 +58,9 @@ export function AccountHeader() {
   if (!state.data.signedIn) {
     return (
       <div className="flex items-center justify-end gap-4 border-b border-border px-4 py-3 text-sm">
+        <Link href="/#membership" className="font-medium text-accent hover:underline">
+          Membership
+        </Link>
         <Link href="/login" className="text-muted-foreground hover:text-accent">
           Log in
         </Link>
@@ -82,6 +85,9 @@ export function AccountHeader() {
         {state.data.profile && (
           <span className="text-muted-foreground">{state.data.profile.creditsBalance} credits</span>
         )}
+        <Link href="/#membership" className="font-medium text-accent hover:underline">
+          Membership
+        </Link>
         <button
           type="button"
           onClick={handleLogout}

@@ -6,11 +6,13 @@ import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 interface AuthFormProps {
   mode: "login" | "register";
+  returnTo?: string;
 }
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode, returnTo }: AuthFormProps) {
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
+  const destination = returnTo || "/";
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,7 +46,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         return;
       }
       if (data.session) {
-        router.push("/");
+        router.push(destination);
         return;
       }
       setStatus("check-email");
@@ -57,7 +59,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       setStatus("idle");
       return;
     }
-    router.push("/");
+    router.push(destination);
   }
 
   if (status === "check-email") {

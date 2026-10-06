@@ -40,4 +40,12 @@ export const siteConfig = {
     buyCreditsLabel: "Buy Credits",
     viewMembershipsLabel: "View Memberships",
   },
+
+  /** Shown when "Generate Prompt" is attempted while logged out. Edit freely. */
+  authRequired: {
+    title: "Register or Log In to Continue",
+    body: "Your research prompt is ready to generate — register or log in to reveal it and run the analysis. Your selections are saved, so you won't need to start over.",
+    registerLabel: "Register",
+    loginLabel: "Log In",
+  },
 } as const;

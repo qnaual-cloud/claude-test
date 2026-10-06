@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CategoryConfig, EntityItem, OptionConfig } from "@/content/categories";
 import { siteConfig } from "@/content/site.config";
 import { VoiceTextField } from "@/components/VoiceTextField";
@@ -12,12 +12,24 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { MarkdownLite } from "@/components/MarkdownLite";
 import { ResearchDashboard } from "@/components/ResearchDashboard";
 import { OutOfCreditsNotice } from "@/components/OutOfCreditsNotice";
+import { AuthRequiredNotice } from "@/components/AuthRequiredNotice";
 import type { DashboardData } from "@/server/dashboardSchema";
-import { notifyCreditsChanged } from "@/lib/creditsEvents";
+import { notifyCreditsChanged, onCreditsChanged } from "@/lib/creditsEvents";
+import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
+import {
+  savePendingResearch,
+  loadPendingResearch,
+  clearPendingResearch,
+  type PendingResearchAnswers,
+} from "@/lib/pendingResearch";
 
 type StepKind = "entity" | "role" | "chips" | "format";
-type Phase = "form" | "loading" | "review" | "error";
+type Phase = "form" | "loading" | "review" | "error" | "auth-required";
 type AnalysisPhase = "idle" | "running" | "done" | "error";
+type AuthState =
+  | { status: "loading" }
+  | { status: "signed-out" }
+  | { status: "signed-in"; creditsBalance: number | null };
 
 interface GenerateResult {
   prompt: string;
@@ -74,18 +86,20 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
     return s;
   }, [category]);
 
+  const returnTo = `/research/${category.id}`;
+
   const [sessionId] = useState(createSessionId);
   const [stepIndex, setStepIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("form");
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [showWhyItWorks, setShowWhyItWorks] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [usedVoice, setUsedVoice] = useState(false);
   const [analysisPhase, setAnalysisPhase] = useState<AnalysisPhase>("idle");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState("");
   const [analysisErrorStatus, setAnalysisErrorStatus] = useState<number | null>(null);
+  const [auth, setAuth] = useState<AuthState>({ status: "loading" });
 
   const [entitySingle, setEntitySingle] = useState("");
   const [entityItems, setEntityItems] = useState<EntityItem[]>(() => {
@@ -97,6 +111,67 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
   const [outputFormatId, setOutputFormatId] = useState<string | undefined>(undefined);
 
   const currentStep = steps[stepIndex];
+
+  // Track signed-in state + live credit balance — needed both to gate
+  // Run Analysis and to decide, once known, whether a saved pending
+  // request (see below) should auto-continue.
+  useEffect(() => {
+    function refresh() {
+      fetch("/api/account/me")
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.signedIn) setAuth({ status: "signed-out" });
+          else setAuth({ status: "signed-in", creditsBalance: data.profile?.creditsBalance ?? null });
+        })
+        .catch(() => setAuth({ status: "signed-out" }));
+    }
+    refresh();
+    const unsubscribeCredits = onCreditsChanged(refresh);
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return unsubscribeCredits;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => refresh());
+    return () => {
+      unsubscribeCredits();
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Restores selections saved before a login/register redirect (see
+  // submitAnswers' 401 handling below). Only once auth state is known:
+  // if now signed in, pick up exactly where the user left off and
+  // regenerate automatically — "return to the exact same place" means
+  // completing the action they already asked for, not making them
+  // press Generate again. If still signed out (e.g. they navigated back
+  // without finishing login), restore the selections but leave the
+  // saved entry in place for next time.
+  useEffect(() => {
+    if (auth.status === "loading") return;
+    const pending = loadPendingResearch(category.id);
+    if (!pending) return;
+
+    // Reading saved state from sessionStorage after mount — this can't
+    // happen during render (no window on the server) and isn't a lazy
+    // useState initializer candidate since it also depends on auth.status.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (category.entity.kind === "single") {
+      setEntitySingle(pending.entitySingle);
+    } else if (pending.entityItems.length > 0) {
+      setEntityItems(pending.entityItems);
+    }
+    setRoleId(pending.roleId);
+    setChipIds(pending.chipIds);
+    setOutputFormatId(pending.outputFormatId);
+    setStepIndex(steps.length - 1);
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    if (auth.status === "signed-in") {
+      clearPendingResearch(category.id);
+      submitAnswers(pending);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.status, category.id]);
 
   const canAdvance = (() => {
     if (currentStep === "entity") {
@@ -122,31 +197,47 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
     setStepIndex(stepIndex - 1);
   }
 
-  async function handleSubmit() {
+  // Deliberately not `async` — called directly from an effect above,
+  // and an async function invoked there trips the same "setState in
+  // effect" lint concern as a bare setState call. Kept as a plain
+  // function that kicks off a promise chain instead.
+  function submitAnswers(answers: PendingResearchAnswers) {
     setPhase("loading");
     setErrorMessage("");
-    try {
-      const res = await fetch("/api/generate-prompt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          categoryId: category.id,
-          entity: category.entity.kind === "single" ? entitySingle : entityItems,
-          roleId,
-          chipIds,
-          outputFormatId,
-          sessionId,
-          usedVoice,
-        }),
+    fetch("/api/generate-prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        categoryId: category.id,
+        entity: category.entity.kind === "single" ? answers.entitySingle : answers.entityItems,
+        roleId: answers.roleId,
+        chipIds: answers.chipIds,
+        outputFormatId: answers.outputFormatId,
+        sessionId,
+        usedVoice,
+      }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          if (res.status === 401) {
+            savePendingResearch(category.id, answers);
+            setPhase("auth-required");
+            return;
+          }
+          throw new Error(data.error || "Something went wrong.");
+        }
+        setResult(data);
+        setPhase("review");
+      })
+      .catch((err) => {
+        setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
+        setPhase("error");
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Something went wrong.");
-      setResult(data);
-      setPhase("review");
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
-      setPhase("error");
-    }
+  }
+
+  function handleSubmit() {
+    submitAnswers({ entitySingle, entityItems, roleId, chipIds, outputFormatId });
   }
 
   function goNext() {
@@ -155,13 +246,6 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
       return;
     }
     handleSubmit();
-  }
-
-  async function handleCopy() {
-    if (!result) return;
-    await navigator.clipboard.writeText(result.prompt);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleRunAnalysis() {
@@ -189,6 +273,11 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
       }
       setAnalysisResult(data);
       setAnalysisPhase("done");
+      // Update the balance immediately from the response rather than
+      // waiting on the refetch notifyCreditsChanged() below triggers.
+      setAuth((prev) =>
+        prev.status === "signed-in" ? { ...prev, creditsBalance: data.creditsRemaining } : prev
+      );
       notifyCreditsChanged();
     } catch {
       setAnalysisError("Something went wrong.");
@@ -197,6 +286,7 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
   }
 
   function handleStartOver() {
+    clearPendingResearch(category.id);
     setPhase("form");
     setStepIndex(0);
     setResult(null);
@@ -216,6 +306,8 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
     setAnalysisError("");
   }
 
+  const atZeroCredits = auth.status === "signed-in" && auth.creditsBalance === 0;
+
   if (phase === "review" && result) {
     return (
       <div className="flex flex-col gap-6">
@@ -230,23 +322,33 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
           </pre>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="min-h-11 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
-          >
-            {copied ? "Copied!" : "Copy Prompt"}
-          </button>
-          <button
-            type="button"
-            onClick={handleRunAnalysis}
-            disabled={analysisPhase === "running"}
-            className="min-h-11 rounded-lg border border-accent px-5 py-2.5 text-sm font-medium text-accent hover:bg-accent/10 disabled:opacity-50"
-          >
-            {analysisPhase === "running" ? "Analyzing…" : "Run Analysis"}
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-4">
+            {auth.status === "signed-in" && (
+              <span className="text-sm font-medium text-foreground">
+                Credits: {auth.creditsBalance ?? "—"}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleRunAnalysis}
+              disabled={analysisPhase === "running" || atZeroCredits}
+              className="min-h-11 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
+            >
+              {analysisPhase === "running" ? "Analyzing…" : "Run Analysis — 1 Credit"}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <Link href="/#buy-credits" className="font-medium text-accent hover:underline">
+              Buy Credits
+            </Link>
+            <Link href="/#membership" className="font-medium text-accent hover:underline">
+              Become a Member
+            </Link>
+          </div>
         </div>
+
+        {atZeroCredits && analysisPhase !== "error" && <OutOfCreditsNotice />}
 
         {analysisPhase === "error" && analysisErrorStatus === 402 ? (
           <OutOfCreditsNotice />
@@ -257,7 +359,7 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
               {analysisErrorStatus === 401 && (
                 <>
                   {" "}
-                  <Link href="/login" className="font-medium underline">
+                  <Link href={`/login?returnTo=${encodeURIComponent(returnTo)}`} className="font-medium underline">
                     Log in
                   </Link>
                 </>
@@ -387,6 +489,7 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
       </div>
 
       {phase === "error" && <p className="text-sm text-red-600">{errorMessage}</p>}
+      {phase === "auth-required" && <AuthRequiredNotice returnTo={returnTo} />}
 
       <div className="flex items-center gap-3">
         {stepIndex > 0 && (

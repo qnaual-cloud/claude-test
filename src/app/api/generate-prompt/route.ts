@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generatePrompt, PromptValidationError, type EntityItem } from "@/server/promptEngine";
 import { logAnalyticsEvent } from "@/lib/supabaseServer";
+import { getAuthenticatedUser } from "@/lib/supabaseServerAuth";
 
 interface RequestBody {
   categoryId: string;
@@ -13,6 +14,17 @@ interface RequestBody {
 }
 
 export async function POST(request: Request) {
+  // The prompt is gated behind authentication here — at the API level,
+  // not just in the UI — so a logged-out request can never receive a
+  // generated prompt no matter how it's called.
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return NextResponse.json(
+      { error: "Please register or log in to generate your prompt." },
+      { status: 401 }
+    );
+  }
+
   let body: RequestBody;
   try {
     body = await request.json();

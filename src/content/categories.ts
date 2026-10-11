@@ -174,24 +174,52 @@ export const categories: CategoryConfig[] = [
     },
   },
   {
-    id: "earnings-market-analysis",
-    label: "Earnings & Market Analysis",
-    description: "Break down earnings results or broader market moves.",
+    id: "earnings",
+    label: "Earnings",
+    description: "Break down a company's latest earnings results.",
     entity: {
       kind: "single",
-      label: "Company, ticker, or sector/market",
-      placeholder: "e.g. Tesla, TSLA, or semiconductor sector",
+      label: "Company or ticker",
+      placeholder: "e.g. Tesla or TSLA",
     },
     focusChips: {
-      question: "What should the analysis focus on?",
+      question: "What should the earnings analysis focus on?",
       minSelect: 1,
       maxSelect: 4,
       options: [
         { id: "latest-earnings", label: "Latest earnings" },
         { id: "guidance", label: "Guidance" },
         { id: "analyst-reaction", label: "Analyst reaction" },
+        { id: "earnings-quality", label: "Earnings quality" },
+      ],
+    },
+    outputFormats: {
+      question: "How should the result be formatted?",
+      options: [
+        { id: "summary", label: "Summary" },
+        { id: "full-report", label: "Full report" },
+        { id: "research-dashboard", label: "Research Dashboard" },
+      ],
+    },
+  },
+  {
+    id: "market-analysis",
+    label: "Market Analysis",
+    description: "Analyze a broader sector, market, or macro theme.",
+    entity: {
+      kind: "single",
+      label: "Sector, market, or theme",
+      placeholder: "e.g. semiconductor sector or S&P 500",
+    },
+    focusChips: {
+      question: "What should the market analysis focus on?",
+      minSelect: 1,
+      maxSelect: 4,
+      options: [
         { id: "sector-trends", label: "Sector trends" },
         { id: "macro-factors", label: "Macro factors" },
+        { id: "valuation-levels", label: "Valuation levels" },
+        { id: "market-sentiment", label: "Market sentiment" },
       ],
     },
     outputFormats: {

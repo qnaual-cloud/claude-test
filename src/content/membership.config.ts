@@ -11,9 +11,11 @@
  * A price left `null` for a currency shows as a blank amount next to
  * the symbol ("£ —") rather than a fake or zero price — used for the
  * Free tier, where there's genuinely no number to show. Priced tiers
- * show the actual number for both GBP and USD at once (no currency
- * toggle) — change the `price` values below for either currency any
- * time; nothing else needs to change for that to appear.
+ * show only the currently-selected currency (GBP/USD toggle at the top
+ * of the Membership section, shared with Buy Credits via
+ * src/lib/currencyContext.tsx) — change the `price` values below for
+ * either currency any time; nothing else needs to change for that to
+ * appear.
  *
  * `stripePriceId` is also blank everywhere. Once you've created the
  * corresponding Price in your Stripe dashboard (one Price per currency —

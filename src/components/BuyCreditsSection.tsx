@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { creditPacks, type Currency } from "@/content/membership.config";
+import { creditPacks } from "@/content/membership.config";
 import { startCheckout } from "@/lib/startCheckout";
 import { onCreditsChanged } from "@/lib/creditsEvents";
+import { useCurrency } from "@/lib/currencyContext";
 
 interface Profile {
   creditsBalance: number;
@@ -16,8 +17,9 @@ type LoadState =
   | { status: "signed-in"; profile: Profile | null };
 
 export function BuyCreditsSection() {
+  const { currency } = useCurrency();
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -42,18 +44,19 @@ export function BuyCreditsSection() {
     };
   }, []);
 
-  async function handleBuy(packId: string, currency: Currency) {
-    const key = `${packId}-${currency}`;
-    setPendingKey(key);
+  async function handleBuy(packId: string) {
+    setPendingId(packId);
     setError("");
     const result = await startCheckout({ type: "credit_pack", packId, currency });
     if (!result.ok) {
       setError(result.error);
-      setPendingKey(null);
+      setPendingId(null);
     }
   }
 
   if (state.status === "loading") return null;
+
+  const symbol = currency === "GBP" ? "£" : "$";
 
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
@@ -64,57 +67,51 @@ export function BuyCreditsSection() {
         </p>
       </div>
 
-      {state.status === "signed-in" && state.profile && (
-        <p className="text-sm text-foreground">{state.profile.creditsBalance} credits remaining</p>
-      )}
+      {state.status === "signed-in" &&
+        (state.profile ? (
+          <p className="text-sm text-foreground">{state.profile.creditsBalance} credits remaining</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">Credits unavailable right now.</p>
+        ))}
+
       <div className="flex flex-col gap-2">
-        {creditPacks.map((pack) => (
-          <div
-            key={pack.id}
-            className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="text-sm text-foreground">
-              <span className="font-medium">{pack.credits} Credits</span>
-              {pack.price.GBP !== null && pack.price.USD !== null && (
-                <span className="text-muted-foreground">
-                  {" "}
-                  — £{pack.price.GBP} UK / ${pack.price.USD} US
-                </span>
+        {creditPacks.map((pack) => {
+          const price = pack.price[currency];
+          return (
+            <div
+              key={pack.id}
+              className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="text-sm text-foreground">
+                <span className="font-medium">{pack.credits} Credits</span>
+                {price !== null && (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    — {symbol}
+                    {price}
+                  </span>
+                )}
+              </div>
+              {state.status === "signed-out" ? (
+                <Link
+                  href="/login"
+                  className="min-h-9 rounded-lg bg-accent px-4 py-2 text-center text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+                >
+                  Log in to buy
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleBuy(pack.id)}
+                  disabled={pendingId === pack.id}
+                  className="min-h-9 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {pendingId === pack.id ? "Redirecting…" : `Buy — ${symbol}${price ?? "—"}`}
+                </button>
               )}
             </div>
-            {state.status === "signed-out" ? (
-              <Link
-                href="/login"
-                className="min-h-10 rounded-lg bg-accent px-4 py-2 text-center text-sm font-medium text-accent-foreground hover:bg-accent-hover"
-              >
-                Log in to buy
-              </Link>
-            ) : (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleBuy(pack.id, "GBP")}
-                  disabled={pendingKey === `${pack.id}-GBP`}
-                  className="min-h-10 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
-                >
-                  {pendingKey === `${pack.id}-GBP`
-                    ? "Redirecting…"
-                    : `Buy — £${pack.price.GBP ?? "—"} UK`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBuy(pack.id, "USD")}
-                  disabled={pendingKey === `${pack.id}-USD`}
-                  className="min-h-10 rounded-lg border border-accent px-4 py-2 text-sm font-medium text-accent hover:bg-accent/10 disabled:opacity-50"
-                >
-                  {pendingKey === `${pack.id}-USD`
-                    ? "Redirecting…"
-                    : `Buy — $${pack.price.USD ?? "—"} US`}
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </section>

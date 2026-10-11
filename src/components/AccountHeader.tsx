@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 import { onCreditsChanged } from "@/lib/creditsEvents";
+import { CreditsBadge } from "@/components/CreditsBadge";
 
 interface Profile {
   fullName: string;
@@ -74,17 +75,19 @@ export function AccountHeader() {
     );
   }
 
+  // Never falls back to the email — a generic welcome is used instead
+  // when no name is on the account.
   const name = state.data.profile?.fullName?.trim();
+  const greeting = name ? `Welcome back, ${name}.` : "Welcome.";
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 text-sm">
-      <p className="text-foreground">
-        Hello{name ? `, ${name}` : ""}. What can I help you with today?
-      </p>
+      <p className="text-foreground">{greeting} What would you like to research today?</p>
       <div className="flex items-center gap-4">
-        {state.data.profile && (
-          <span className="text-muted-foreground">{state.data.profile.creditsBalance} credits</span>
-        )}
+        <CreditsBadge
+          status={state.data.profile ? "ready" : "error"}
+          balance={state.data.profile?.creditsBalance ?? null}
+        />
         <Link href="/#membership" className="font-medium text-accent hover:underline">
           Membership
         </Link>

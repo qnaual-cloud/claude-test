@@ -140,20 +140,18 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
     ],
   },
 
-  "earnings-market-analysis": {
+  earnings: {
     role:
-      "You are a markets analyst experienced in earnings interpretation and sector/macro context.",
-    objective: (subject) => `Analyze recent earnings and market context for ${subject}.`,
+      "You are a markets analyst experienced in earnings interpretation and results analysis.",
+    objective: (subject) => `Analyze recent earnings results for ${subject}.`,
     chipInstructions: {
       "latest-earnings":
         "Summarize the most recent earnings results against expectations, including key metrics that moved.",
       guidance: "Assess management's forward guidance and how it compares to prior guidance.",
       "analyst-reaction":
         "Summarize how analysts and the market reacted, including notable estimate or rating changes.",
-      "sector-trends":
-        "Place the results in the context of broader sector trends.",
-      "macro-factors":
-        "Identify macro factors (rates, currency, demand environment, etc.) relevant to the results.",
+      "earnings-quality":
+        "Assess the quality of the reported earnings — one-off items, margin trends, and underlying run-rate performance.",
     },
     outputFormatInstructions: {
       summary: "Present the findings as a concise summary (roughly 200-300 words).",
@@ -161,6 +159,35 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
         "Present the findings as a full structured report with clear section headings.",
       "research-dashboard":
         "Present the findings as a structured research dashboard: a one-line headline verdict on the results, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the analysis — organized for at-a-glance scanning rather than long-form prose.",
+    },
+    whyItWorksBase: [
+      "Clear markets-analyst role and objective",
+      "Structured, specific analysis checklist",
+      "Explicit output format",
+      "Verification and assumption-transparency instructions",
+    ],
+  },
+
+  "market-analysis": {
+    role:
+      "You are a markets analyst experienced in sector and macro market analysis.",
+    objective: (subject) => `Analyze current market conditions and context for ${subject}.`,
+    chipInstructions: {
+      "sector-trends":
+        "Place current conditions in the context of broader sector trends.",
+      "macro-factors":
+        "Identify macro factors (rates, currency, demand environment, etc.) relevant to this market.",
+      "valuation-levels":
+        "Assess current valuation levels relative to historical norms and relevant benchmarks.",
+      "market-sentiment":
+        "Assess investor sentiment and positioning, including any signs of excess optimism or pessimism.",
+    },
+    outputFormatInstructions: {
+      summary: "Present the findings as a concise summary (roughly 200-300 words).",
+      "full-report":
+        "Present the findings as a full structured report with clear section headings.",
+      "research-dashboard":
+        "Present the findings as a structured research dashboard: a one-line headline verdict, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the analysis — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear markets-analyst role and objective",

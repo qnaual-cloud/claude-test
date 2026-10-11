@@ -8,8 +8,30 @@
  */
 
 export const siteConfig = {
-  productName: "AI Investment Research Assistant",
-  tagline: "Tell us what you want to research. We'll build the prompt.",
+  productName: "PROFICERE",
+  productSubtitle: "AI Investment Research Assistant",
+  tagline: "AI-powered investment research for investors, asset managers, and family offices.",
+
+  /** The homepage hero copy, shown below the PROFICERE title. Edit freely. */
+  homeIntro: {
+    heading: "Speed. Simplicity. Focus.",
+    body: "From company analysis and valuation to market insights, access focused, AI-powered research in one place, without writing a single prompt.",
+    closing: "Do your research. Get straight to what matters.",
+  },
+
+  /**
+   * The "Proficere Professional" enquiry card shown under the standard
+   * membership plans. No price — this is a contact/enquiry CTA only.
+   * `email` is the one place to change the business contact address.
+   */
+  professionalContact: {
+    heading: "Proficere Professional",
+    audience: "For asset managers, family offices and investment teams.",
+    body: "Need higher research volumes or a tailored solution? Contact us to discuss your requirements.",
+    buttonLabel: "Contact Us",
+    email: "support@digitalaibynaual.com",
+    subject: "Proficere Professional Enquiry",
+  },
 
   /**
    * Small, removable credit line shown in the footer during testing.

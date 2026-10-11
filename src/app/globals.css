@@ -16,6 +16,12 @@
   --status-positive: #3f6b52;
   --status-negative: #8a4a3e;
   --status-neutral: #6b6a63;
+
+  /* Credit-balance badge — the one deliberately saturated green accent,
+     used only for the "Available Credits" box. */
+  --success-bg: #e6f4ea;
+  --success-border: #1e7e34;
+  --success-foreground: #14532d;
 }
 
 @theme inline {
@@ -31,6 +37,9 @@
   --color-status-positive: var(--status-positive);
   --color-status-negative: var(--status-negative);
   --color-status-neutral: var(--status-neutral);
+  --color-success-bg: var(--success-bg);
+  --color-success-border: var(--success-border);
+  --color-success-foreground: var(--success-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -49,6 +58,9 @@
     --status-positive: #7fb69a;
     --status-negative: #d08b7c;
     --status-neutral: #9a9990;
+    --success-bg: #113b27;
+    --success-border: #34d399;
+    --success-foreground: #86efac;
   }
 }
 

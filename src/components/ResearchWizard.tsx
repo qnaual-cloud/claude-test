@@ -13,6 +13,7 @@ import { MarkdownLite } from "@/components/MarkdownLite";
 import { ResearchDashboard } from "@/components/ResearchDashboard";
 import { OutOfCreditsNotice } from "@/components/OutOfCreditsNotice";
 import { AuthRequiredNotice } from "@/components/AuthRequiredNotice";
+import { CreditsBadge } from "@/components/CreditsBadge";
 import type { DashboardData } from "@/server/dashboardSchema";
 import { notifyCreditsChanged, onCreditsChanged } from "@/lib/creditsEvents";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
@@ -324,10 +325,12 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
 
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-4">
+            {auth.status === "loading" && <CreditsBadge status="loading" />}
             {auth.status === "signed-in" && (
-              <span className="text-sm font-medium text-foreground">
-                Credits: {auth.creditsBalance ?? "—"}
-              </span>
+              <CreditsBadge
+                status={auth.creditsBalance === null ? "error" : "ready"}
+                balance={auth.creditsBalance}
+              />
             )}
             <button
               type="button"

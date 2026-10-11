@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const result = await consumeCredit(user.id, { categoryId, outputFormatId });
     if (result === null) {
       return NextResponse.json(
-        { error: "You're out of credits. Buy more to continue." },
+        { error: "You're out of credits. Add more to continue." },
         { status: 402 }
       );
     }

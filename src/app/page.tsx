@@ -19,7 +19,7 @@ export default function Home() {
 
       <CurrencyProvider>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:items-start">
-          {/* Center: introduction + Buy Credits */}
+          {/* Center: introduction + Add Credits */}
           <section className="order-1 flex flex-col gap-10 lg:order-2">
             <div className="text-center lg:text-left">
               <h2 className="text-2xl font-semibold text-foreground">

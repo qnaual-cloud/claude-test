@@ -343,7 +343,7 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
           </div>
           <div className="flex flex-wrap gap-4 text-sm">
             <Link href="/#buy-credits" className="font-medium text-accent hover:underline">
-              Buy Credits
+              Add Credits
             </Link>
             <Link href="/#membership" className="font-medium text-accent hover:underline">
               Become a Member

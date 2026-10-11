@@ -92,7 +92,8 @@ export function MembershipSection() {
 
               {tier.creditAllowance > 0 && (
                 <p className="text-sm font-medium text-accent">
-                  {tier.creditAllowance} analyses / month
+                  {tier.creditAllowance} credits / month
+                  {tier.annualTotalCredits && ` (${tier.annualTotalCredits} credits over 12 months)`}
                 </p>
               )}
               <ul className="flex flex-col gap-1.5 text-sm text-foreground">

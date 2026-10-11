@@ -11,7 +11,7 @@ interface CurrencyContextValue {
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 
 /**
- * Shares one GBP/USD selection between the Membership and Buy Credits
+ * Shares one GBP/USD selection between the Membership and Add Credits
  * sections (which live in different columns of the homepage) so switching
  * currency in one place updates both, instead of each section keeping its
  * own toggle.

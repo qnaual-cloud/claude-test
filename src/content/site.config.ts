@@ -21,14 +21,16 @@ export const siteConfig = {
 
   /**
    * The "Proficere Professional" enquiry card shown under the standard
-   * membership plans. No price — this is a contact/enquiry CTA only.
+   * membership plans. No price — this is a contact/enquiry CTA only, not
+   * another paid subscription, and doesn't advertise any feature that
+   * isn't built yet.
    * `email` is the one place to change the business contact address.
    */
   professionalContact: {
-    heading: "Proficere Professional",
+    heading: "PROFICERE PROFESSIONAL",
     audience: "For asset managers, family offices and investment teams.",
-    body: "Need higher research volumes or a tailored solution? Contact us to discuss your requirements.",
-    buttonLabel: "Contact Us",
+    body: "Need higher research volumes or AI workflows tailored to your investment research, reporting and client meetings?",
+    buttonLabel: "Discuss Your Requirements",
     email: "support@digitalaibynaual.com",
     subject: "Proficere Professional Enquiry",
   },
@@ -58,8 +60,8 @@ export const siteConfig = {
   /** Shown when Run Analysis is attempted with 0 credits left. Edit freely. */
   outOfCredits: {
     title: "Continue Your Research",
-    body: "You've used all of your available analyses. Choose an option below to keep going.",
-    buyCreditsLabel: "Buy Credits",
+    body: "You've used all of your available credits. Choose an option below to keep going.",
+    buyCreditsLabel: "Add Credits",
     viewMembershipsLabel: "View Memberships",
   },
 

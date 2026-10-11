@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { getStripeClient } from "@/lib/stripeServer";
 import { getAuthenticatedUser } from "@/lib/supabaseServerAuth";
-import { membershipTiers, creditPacks, PAYMENTS_ENABLED, type Currency } from "@/content/membership.config";
+import { getProfile, CreditsNotConfiguredError } from "@/lib/credits";
+import {
+  membershipTiers,
+  creditPacks,
+  isActiveMembership,
+  PAYMENTS_ENABLED,
+  type Currency,
+} from "@/content/membership.config";
 
 interface RequestBody {
   type?: "credit_pack" | "membership";
@@ -60,10 +67,23 @@ export async function POST(request: Request) {
     if (!pack) {
       return NextResponse.json({ error: "Unknown credit pack." }, { status: 400 });
     }
-    const priceId = pack.stripePriceId[currency];
+
+    // The member-discounted price is decided from the user's own profile
+    // row, looked up here server-side — never from anything the client
+    // sends — so a non-member can never claim the member price.
+    let membershipTier: "free" | "member" | "professional" | null = null;
+    try {
+      const profile = await getProfile(user.id);
+      membershipTier = profile?.membershipTier ?? null;
+    } catch (err) {
+      if (!(err instanceof CreditsNotConfiguredError)) throw err;
+    }
+    const priceId = isActiveMembership(membershipTier)
+      ? pack.memberStripePriceId[currency]
+      : pack.stripePriceId[currency];
     if (!priceId) {
       return NextResponse.json(
-        { error: "Buying credits isn't available yet — pricing hasn't been connected." },
+        { error: "Adding credits isn't available yet — pricing hasn't been connected." },
         { status: 400 }
       );
     }

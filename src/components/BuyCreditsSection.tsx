@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { creditPacks } from "@/content/membership.config";
+import { creditPacks, isActiveMembership, creditPackPriceFor } from "@/content/membership.config";
 import { startCheckout } from "@/lib/startCheckout";
 import { onCreditsChanged } from "@/lib/creditsEvents";
 import { useCurrency } from "@/lib/currencyContext";
 
 interface Profile {
   creditsBalance: number;
+  membershipTier: "free" | "member" | "professional";
 }
 
 type LoadState =
@@ -44,7 +45,7 @@ export function BuyCreditsSection() {
     };
   }, []);
 
-  async function handleBuy(packId: string) {
+  async function handleAdd(packId: string) {
     setPendingId(packId);
     setError("");
     const result = await startCheckout({ type: "credit_pack", packId, currency });
@@ -57,26 +58,32 @@ export function BuyCreditsSection() {
   if (state.status === "loading") return null;
 
   const symbol = currency === "GBP" ? "£" : "$";
+  const isMember = state.status === "signed-in" && isActiveMembership(state.profile?.membershipTier);
 
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
       <div>
-        <h2 className="text-base font-semibold text-foreground">Buy Credits</h2>
+        <h2 className="text-base font-semibold text-foreground">Add Credits</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Each Run Analysis uses 1 credit. New accounts get 5 free after confirming their email.
+          Preview pricing — payments aren&apos;t active yet.
         </p>
       </div>
 
       {state.status === "signed-in" &&
         (state.profile ? (
-          <p className="text-sm text-foreground">{state.profile.creditsBalance} credits remaining</p>
+          <p className="text-sm text-foreground">
+            {state.profile.creditsBalance === 0
+              ? "0 credits"
+              : `${state.profile.creditsBalance} credits remaining`}
+          </p>
         ) : (
-          <p className="text-sm text-muted-foreground">Credits unavailable right now.</p>
+          <p className="text-sm text-muted-foreground">Unable to load credit balance.</p>
         ))}
 
       <div className="flex flex-col gap-2">
         {creditPacks.map((pack) => {
-          const price = pack.price[currency];
+          const price = creditPackPriceFor(pack, state.status === "signed-in" ? state.profile?.membershipTier : null, currency);
           return (
             <div
               key={pack.id}
@@ -91,22 +98,34 @@ export function BuyCreditsSection() {
                     {price}
                   </span>
                 )}
+                {isMember ? (
+                  <p className="mt-0.5 text-xs text-accent">Member price — a benefit of your active membership.</p>
+                ) : (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Active members pay {symbol}
+                    {pack.memberPrice[currency]} instead —{" "}
+                    <Link href="/#membership" className="underline hover:text-accent">
+                      see Membership
+                    </Link>
+                    .
+                  </p>
+                )}
               </div>
               {state.status === "signed-out" ? (
                 <Link
                   href="/login"
                   className="min-h-9 rounded-lg bg-accent px-4 py-2 text-center text-sm font-medium text-accent-foreground hover:bg-accent-hover"
                 >
-                  Log in to buy
+                  Log in to add credits
                 </Link>
               ) : (
                 <button
                   type="button"
-                  onClick={() => handleBuy(pack.id)}
+                  onClick={() => handleAdd(pack.id)}
                   disabled={pendingId === pack.id}
                   className="min-h-9 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
                 >
-                  {pendingId === pack.id ? "Redirecting…" : `Buy — ${symbol}${price ?? "—"}`}
+                  {pendingId === pack.id ? "Redirecting…" : `Add — ${symbol}${price ?? "—"}`}
                 </button>
               )}
             </div>

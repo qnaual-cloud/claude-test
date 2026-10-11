@@ -1,8 +1,8 @@
 /**
- * The prominent "Available Credits" box. Always reflects the real
- * account balance passed in by the caller — never a hardcoded number —
- * and shows a distinct loading/error state instead of a misleading
- * zero or dash when the balance can't be read.
+ * The prominent credit-balance box. Always reflects the real account
+ * balance passed in by the caller — never a hardcoded number. A real
+ * zero shows plainly as "0 credits"; an unknown balance shows a clear,
+ * distinct loading/error message instead — never a misleading zero.
  */
 export function CreditsBadge({
   status,
@@ -22,14 +22,14 @@ export function CreditsBadge({
   if (status === "error" || balance === null || balance === undefined) {
     return (
       <span className="inline-flex items-center rounded-full border border-border bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground">
-        Credits unavailable
+        Unable to load credit balance
       </span>
     );
   }
 
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-success-border bg-success-bg px-3 py-1.5 text-sm font-semibold text-success-foreground">
-      Available Credits: {balance}
+      {balance === 0 ? "0 credits" : `${balance} credits remaining`}
     </span>
   );
 }

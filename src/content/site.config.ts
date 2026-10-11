@@ -9,6 +9,8 @@
 
 export const siteConfig = {
   productName: "PROFICERE",
+  /** Shown directly under the PROFICERE title, above productSubtitle. */
+  productHeadline: "From investment research to meeting-ready briefs.",
   productSubtitle: "AI Investment Research Assistant",
   tagline: "AI-powered investment research for investors, asset managers, and family offices.",
 

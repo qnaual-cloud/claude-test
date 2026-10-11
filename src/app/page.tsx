@@ -12,6 +12,9 @@ export default function Home() {
         <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           {siteConfig.productName}
         </h1>
+        <p className="mt-2 text-lg font-semibold text-foreground sm:text-xl">
+          {siteConfig.productHeadline}
+        </p>
         <p className="mt-1 text-base font-medium text-muted-foreground sm:text-lg">
           {siteConfig.productSubtitle}
         </p>

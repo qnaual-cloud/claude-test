@@ -309,7 +309,8 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
         "Present the brief as a single page — tight and scannable, limited to the essential points.",
       "full-brief":
         "Present the brief as a full briefing document with clear section headings.",
-      "talking-points": "Present the brief as a bulleted list of talking points, ready to speak from.",
+      "talking-points":
+        "Present the brief as 5-7 concise, meeting-ready talking points — each a short, speakable line, not a paragraph. Cover: what changed, why it matters, opportunities, risks, and questions for the committee to consider.",
       "research-dashboard":
         "Present the brief as a structured research dashboard: a one-line headline verdict, 3-6 key points with values, a short list of strengths, a short list of risks, and the key sections of the brief — organized for at-a-glance scanning rather than long-form prose.",
     },

@@ -341,11 +341,17 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
               {analysisPhase === "running" ? "Analyzing…" : "Run Analysis — 1 Credit"}
             </button>
           </div>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <Link href="/#buy-credits" className="font-medium text-accent hover:underline">
-              Add Credits
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/#buy-credits"
+              className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:border-accent hover:text-accent"
+            >
+              Buy Credits
             </Link>
-            <Link href="/#membership" className="font-medium text-accent hover:underline">
+            <Link
+              href="/#membership"
+              className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:border-accent hover:text-accent"
+            >
               Become a Member
             </Link>
           </div>

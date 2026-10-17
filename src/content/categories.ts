@@ -274,6 +274,88 @@ export const categories: CategoryConfig[] = [
       ],
     },
   },
+  {
+    id: "stock-screener",
+    label: "Stock Screener",
+    description: "Build a shortlist of companies from clear, verifiable screening criteria.",
+    entity: {
+      kind: "single",
+      label: "Category or universe to screen",
+      placeholder: "e.g. US large-cap technology, UK dividend payers, or S&P 500",
+    },
+    roleStep: {
+      question: "What screening approach should be used?",
+      options: [
+        { id: "value-investing", label: "Value" },
+        { id: "growth", label: "Growth" },
+        { id: "dividend-income", label: "Dividend / income" },
+        { id: "quality", label: "Quality" },
+        { id: "momentum", label: "Momentum" },
+      ],
+    },
+    focusChips: {
+      question: "What should the screen focus on?",
+      minSelect: 1,
+      maxSelect: 4,
+      options: [
+        { id: "valuation-metrics", label: "Valuation metrics" },
+        { id: "growth-metrics", label: "Growth metrics" },
+        { id: "dividend-metrics", label: "Dividend metrics" },
+        { id: "balance-sheet-strength", label: "Balance sheet strength" },
+        { id: "profitability", label: "Profitability margins" },
+        { id: "market-cap-liquidity", label: "Market cap & liquidity" },
+      ],
+    },
+    outputFormats: {
+      question: "How should the result be formatted?",
+      options: [
+        { id: "summary", label: "Summary" },
+        { id: "shortlist-table", label: "Shortlist table" },
+        { id: "full-report", label: "Full report" },
+        { id: "research-dashboard", label: "Research Dashboard" },
+      ],
+    },
+  },
+  {
+    id: "investment-briefing",
+    label: "Investment Briefing",
+    description: "Prepare a meeting-ready brief for a client, committee, or executive audience.",
+    entity: {
+      kind: "single",
+      label: "Subject",
+      placeholder: "e.g. NVIDIA, NVIDIA vs AMD, or the AI infrastructure sector",
+    },
+    roleStep: {
+      question: "What type of brief is this?",
+      options: [
+        { id: "client-meeting-brief", label: "Client Meeting Brief" },
+        { id: "investment-committee-brief", label: "Investment Committee Brief" },
+        { id: "executive-summary", label: "Executive Summary" },
+      ],
+    },
+    focusChips: {
+      question: "What should the brief focus on?",
+      minSelect: 1,
+      maxSelect: 4,
+      options: [
+        { id: "investment-thesis", label: "Investment thesis" },
+        { id: "key-risks", label: "Key risks" },
+        { id: "valuation-snapshot", label: "Valuation snapshot" },
+        { id: "recent-developments", label: "Recent developments" },
+        { id: "competitive-context", label: "Competitive context" },
+        { id: "recommendation", label: "Recommendation / talking points" },
+      ],
+    },
+    outputFormats: {
+      question: "How should the brief be formatted?",
+      options: [
+        { id: "one-pager", label: "One-page brief" },
+        { id: "full-brief", label: "Full briefing document" },
+        { id: "talking-points", label: "Talking points" },
+        { id: "research-dashboard", label: "Research Dashboard" },
+      ],
+    },
+  },
 ];
 
 export function getCategoryById(id: string): CategoryConfig | undefined {

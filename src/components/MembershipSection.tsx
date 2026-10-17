@@ -124,7 +124,9 @@ export function MembershipSection() {
         })}
       </div>
 
-      <ProficereProfessionalCard />
+      <div id="professional">
+        <ProficereProfessionalCard />
+      </div>
     </section>
   );
 }

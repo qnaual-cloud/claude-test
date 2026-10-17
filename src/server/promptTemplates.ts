@@ -18,6 +18,8 @@ export interface CategoryTemplate {
   chipInstructions: Record<string, string>;
   outputFormatInstructions: Record<string, string>;
   whyItWorksBase: string[];
+  /** Appended after SHARED_CONSTRAINTS for this category only — use for a stronger, category-specific requirement (e.g. "no invented figures") rather than editing the shared list. */
+  extraConstraints?: string[];
 }
 
 const SHARED_CONSTRAINTS = [
@@ -236,6 +238,91 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "Structured, specific review checklist",
       "Explicit output format",
       "Verification and assumption-transparency instructions",
+    ],
+  },
+
+  "stock-screener": {
+    role: "You are an equity research analyst building a stock screen from verifiable public data.",
+    objective: (subject) => `Build a stock screen for: ${subject}.`,
+    roleContext: {
+      "value-investing":
+        "Prioritize companies that appear undervalued relative to their fundamentals.",
+      growth: "Prioritize companies with strong, sustainable growth.",
+      "dividend-income": "Prioritize companies offering durable income through dividends.",
+      quality:
+        "Prioritize companies with high-quality fundamentals — strong margins, low debt, consistent returns.",
+      momentum: "Prioritize companies showing strong recent price and earnings momentum.",
+    },
+    chipInstructions: {
+      "valuation-metrics":
+        "Screen on valuation metrics such as P/E, P/B, and EV/EBITDA relative to peers or historical norms.",
+      "growth-metrics": "Screen on revenue and earnings growth metrics.",
+      "dividend-metrics": "Screen on dividend yield and payout ratio.",
+      "balance-sheet-strength":
+        "Screen on balance-sheet strength — debt levels, interest coverage, and liquidity.",
+      profitability: "Screen on profitability margins (gross, operating, net).",
+      "market-cap-liquidity": "Screen on market capitalization and trading liquidity.",
+    },
+    outputFormatInstructions: {
+      summary: "Present the findings as a concise summary (roughly 200-300 words).",
+      "shortlist-table":
+        "Present the result as a shortlist table of candidate companies with the key screening metrics as columns, followed by a brief written takeaway.",
+      "full-report":
+        "Present the findings as a full structured report with clear section headings.",
+      "research-dashboard":
+        "Present the findings as a structured research dashboard: a one-line headline verdict, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the screen — organized for at-a-glance scanning rather than long-form prose.",
+    },
+    whyItWorksBase: [
+      "Clear analyst role and objective",
+      "Screening approach shapes which companies surface",
+      "Structured, specific screening criteria",
+      "Explicit output format",
+      "Explicit no-invented-figures and sourcing requirement",
+    ],
+    extraConstraints: [
+      "Only include companies, tickers, and figures that are genuinely verifiable — never invent a name, ticker, or financial figure. If a precise current figure isn't available, say so explicitly rather than estimating or guessing at a number.",
+      "State the source or basis for each company's inclusion in the shortlist (e.g. the metric and approximate value that qualified it).",
+    ],
+  },
+
+  "investment-briefing": {
+    role: "You are an investment professional preparing a meeting-ready brief for an investment audience.",
+    objective: (subject) => `Prepare an investment brief on: ${subject}.`,
+    roleContext: {
+      "client-meeting-brief":
+        "This brief is for a client meeting — keep it clear, jargon-light, and focused on what matters to the client's decision.",
+      "investment-committee-brief":
+        "This brief is for an investment committee — be rigorous, cite evidence for each claim, and surface the key debate points the committee will need to weigh.",
+      "executive-summary":
+        "This is an executive summary — lead with the conclusion and recommendation, keeping supporting detail brief.",
+    },
+    chipInstructions: {
+      "investment-thesis": "State the core investment thesis clearly.",
+      "key-risks": "Identify the key risks to the thesis.",
+      "valuation-snapshot": "Include a brief valuation snapshot.",
+      "recent-developments": "Summarize recent developments relevant to the brief.",
+      "competitive-context": "Provide brief competitive context.",
+      recommendation: "Include a clear recommendation or talking points for discussion.",
+    },
+    outputFormatInstructions: {
+      "one-pager":
+        "Present the brief as a single page — tight and scannable, limited to the essential points.",
+      "full-brief":
+        "Present the brief as a full briefing document with clear section headings.",
+      "talking-points": "Present the brief as a bulleted list of talking points, ready to speak from.",
+      "research-dashboard":
+        "Present the brief as a structured research dashboard: a one-line headline verdict, 3-6 key points with values, a short list of strengths, a short list of risks, and the key sections of the brief — organized for at-a-glance scanning rather than long-form prose.",
+    },
+    whyItWorksBase: [
+      "Clear professional role and objective",
+      "Brief type shapes tone and depth for the intended audience",
+      "Structured, specific content checklist",
+      "Explicit output format",
+      "Explicit sources-only requirement — no invented data",
+    ],
+    extraConstraints: [
+      "Base every claim on verifiable, sourced information and cite the source or basis for each fact or figure used. Do not invent data, quotes, or figures.",
+      "If information needed for a complete brief isn't available or verifiable, state that explicitly rather than filling the gap with an assumption.",
     ],
   },
 };

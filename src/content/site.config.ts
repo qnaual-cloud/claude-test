@@ -30,8 +30,8 @@ export const siteConfig = {
    */
   professionalContact: {
     heading: "PROFICERE PROFESSIONAL",
-    audience: "For asset managers, family offices and investment teams.",
-    body: "Need higher research volumes or AI workflows tailored to your investment research, reporting and client meetings?",
+    audience: "For asset managers, family offices and financial institutions.",
+    body: "Scale your investment research with AI workflows tailored to your firm's analysis, reporting and client meetings — built for teams that need consistency, speed and institutional rigor.",
     buttonLabel: "Discuss Your Requirements",
     email: "support@digitalaibynaual.com",
     subject: "Proficere Professional Enquiry",

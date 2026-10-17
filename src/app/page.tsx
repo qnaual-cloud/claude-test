@@ -18,6 +18,12 @@ export default function Home() {
         <p className="mt-1 text-base font-medium text-muted-foreground sm:text-lg">
           {siteConfig.productSubtitle}
         </p>
+        <Link
+          href="/#professional"
+          className="mt-3 inline-block text-sm text-muted-foreground hover:text-accent hover:underline"
+        >
+          For Professionals
+        </Link>
       </div>
 
       <CurrencyProvider>
@@ -38,7 +44,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Right: six research tools */}
+          {/* Right: research tools */}
           <aside className="order-2 lg:order-3">
             <h2 className="mb-3 text-base font-semibold text-foreground">Research Tools</h2>
             <div className="flex flex-col gap-2.5">

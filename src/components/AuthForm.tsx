@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 interface AuthFormProps {
@@ -130,6 +131,15 @@ export function AuthForm({ mode, returnTo }: AuthFormProps) {
             ? "Log in"
             : "Create account"}
       </button>
+
+      {mode === "login" && (
+        <Link
+          href={returnTo ? `/forgot-password?returnTo=${encodeURIComponent(returnTo)}` : "/forgot-password"}
+          className="self-start text-sm font-medium text-accent hover:underline"
+        >
+          Forgot Password?
+        </Link>
+      )}
     </form>
   );
 }

@@ -118,7 +118,8 @@ export function generatePrompt(input: GeneratePromptInput): GeneratePromptResult
     `Required analysis:\n${requiredAnalysis.map((line) => `- ${line}`).join("\n")}`
   );
   sections.push(`Output format: ${outputInstruction}`);
-  sections.push(`Constraints:\n${SHARED_CONSTRAINTS.map((line) => `- ${line}`).join("\n")}`);
+  const constraints = [...SHARED_CONSTRAINTS, ...(template.extraConstraints ?? [])];
+  sections.push(`Constraints:\n${constraints.map((line) => `- ${line}`).join("\n")}`);
   sections.push(SHARED_FOLLOW_UP);
 
   const prompt = sections.join("\n\n");

@@ -90,6 +90,13 @@ export async function runResearchAnalysis(input: RunAnalysisInput): Promise<RunA
         messages: [{ role: "user", content: input.prompt }],
       });
 
+      // Diagnostic only — stop_reason and token counts, never prompt text
+      // or the parsed research content, so nothing user- or company-
+      // specific reaches the logs.
+      console.log(
+        `[run-analysis] dashboard response stop_reason=${response.stop_reason} inputTokens=${response.usage.input_tokens} outputTokens=${response.usage.output_tokens}`
+      );
+
       if (!response.parsed_output) {
         throw new AnalysisFailedError(
           "The analysis didn't come back in the expected format. Please try again."
@@ -118,6 +125,13 @@ export async function runResearchAnalysis(input: RunAnalysisInput): Promise<RunA
       tools: WEB_SEARCH_ENABLED ? WEB_SEARCH_TOOLS : undefined,
       messages: [{ role: "user", content: input.prompt }],
     });
+
+    // Diagnostic only — stop_reason and token counts, never prompt text or
+    // the generated research content, so nothing user- or company-specific
+    // reaches the logs.
+    console.log(
+      `[run-analysis] text response stop_reason=${response.stop_reason} inputTokens=${response.usage.input_tokens} outputTokens=${response.usage.output_tokens}`
+    );
 
     // With web search enabled, content can include multiple text blocks
     // interleaved with search-tool blocks (e.g. text before a search,

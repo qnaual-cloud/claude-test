@@ -64,7 +64,7 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
         "Present the findings as a full structured report with clear section headings.",
       memo: "Present the findings as an investment memo suitable for sharing with another investor.",
       "research-dashboard":
-        "Present the findings as a structured research dashboard: a one-line headline verdict, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the analysis — organized for at-a-glance scanning rather than long-form prose.",
+        "Present the findings as a structured research dashboard: a one-line headline verdict, 3-6 key metrics with values, a short list of strengths, a short list of risks, the key sections of the analysis, and the key assumptions behind the analysis — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear analyst role and objective",
@@ -72,6 +72,11 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "Structured, specific research checklist",
       "Explicit output format",
       "Verification and assumption-transparency instructions",
+      "Explicit sourcing, date, and verified-vs-estimate requirement for figures",
+    ],
+    extraConstraints: [
+      "For key financial figures (e.g. revenue, margins, growth rates, valuation multiples), state the source and as-of date, and clearly label each one as a verified reported figure or an estimate — never invent a number.",
+      "If current/live market data (e.g. a real-time price) is not available to you, say so explicitly rather than presenting a guess as current.",
     ],
   },
 

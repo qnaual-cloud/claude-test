@@ -9,6 +9,7 @@ import { getAuthenticatedUser } from "@/lib/supabaseServerAuth";
 import {
   consumeCredit,
   refundCredit,
+  completeAnalysisRun,
   reconcileStaleAnalysisRuns,
   CreditsNotConfiguredError,
 } from "@/lib/credits";
@@ -84,6 +85,11 @@ export async function POST(request: Request) {
 
   try {
     const result = await runResearchAnalysis({ prompt, outputFormatId });
+
+    // Close out the reservation immediately on success — before
+    // anything else — so reconcileStaleAnalysisRuns never mistakes this
+    // legitimately spent credit for one stuck mid-request.
+    await completeAnalysisRun(user.id);
 
     logAnalyticsEvent({
       sessionId,

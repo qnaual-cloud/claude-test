@@ -305,11 +305,14 @@ end;
 $$;
 
 -- Refunds 1 credit (used when a Run Analysis call fails after a credit
--- was already reserved via consume_credit). Also claims and closes out
--- the matching pending reservation (the most recent one for this user)
--- so reconcile_stale_analysis_runs never double-refunds it later.
--- `for update skip locked` makes the claim safe if this ever races with
--- the reconciliation sweep for the same user.
+-- was already reserved via consume_credit). The claim is the atomic
+-- gate, not the balance update: no matching pending reservation for
+-- this user means no balance change and no transaction logged — this
+-- is what stops a duplicate or out-of-band refund_credit call from
+-- ever paying out a credit that isn't actually outstanding.
+-- `for update skip locked` makes the claim safe if this ever races
+-- with complete_analysis_run or the reconciliation sweep for the same
+-- user.
 create or replace function refund_credit(
   p_user_id uuid,
   p_reason text default 'refund',
@@ -333,29 +336,58 @@ begin
   )
   returning id into v_claimed_id;
 
+  if v_claimed_id is null then
+    return null; -- nothing outstanding to refund — balance is untouched
+  end if;
+
   update profiles
   set credits_balance = credits_balance + 1,
       updated_at = now()
   where id = p_user_id
   returning credits_balance into v_new_balance;
 
-  -- No profile matched (e.g. a stale/bad id) — don't log a refund that
-  -- never actually changed a balance.
   if v_new_balance is null then
-    return null;
+    return null; -- no such profile — shouldn't happen right after a successful claim, but stay safe
   end if;
 
   insert into credit_transactions (user_id, amount, reason, metadata, status)
   values (
     p_user_id, 1, p_reason,
-    case when v_claimed_id is not null
-      then p_metadata || jsonb_build_object('reconciledTransactionId', v_claimed_id)
-      else p_metadata
-    end,
+    p_metadata || jsonb_build_object('reconciledTransactionId', v_claimed_id),
     'completed'
   );
 
   return v_new_balance;
+end;
+$$;
+
+-- The success path: call this right after a Run Analysis request
+-- actually succeeds, so its pending reservation is closed out as
+-- 'completed'. Without this, reconcile_stale_analysis_runs would
+-- eventually mistake a successful, already-spent credit for one stuck
+-- mid-request and refund it by mistake. Same claim pattern as
+-- refund_credit, so the two can never race onto the same row. Returns
+-- true if a pending reservation was found and completed, false if
+-- there was nothing to claim.
+create or replace function complete_analysis_run(p_user_id uuid)
+returns boolean
+language plpgsql
+as $$
+declare
+  v_claimed_id uuid;
+begin
+  update credit_transactions
+  set status = 'completed'
+  where id in (
+    select id from credit_transactions
+    where user_id = p_user_id and reason = 'analysis_run' and status = 'pending'
+    order by created_at desc
+    limit 1
+    for update skip locked
+  )
+  returning id into v_claimed_id;
+
+  return v_claimed_id is not null;
 end;
 $$;
 
@@ -547,6 +579,7 @@ revoke execute on function refund_credit(uuid, text, jsonb) from public, anon, a
 revoke execute on function grant_credits(uuid, integer, text, text, jsonb) from public, anon, authenticated;
 revoke execute on function admin_adjust_credits(uuid, integer, text, text) from public, anon, authenticated;
 revoke execute on function reconcile_stale_analysis_runs(uuid, interval) from public, anon, authenticated;
+revoke execute on function complete_analysis_run(uuid) from public, anon, authenticated;
 
 grant execute on function grant_signup_bonus(uuid, text) to service_role;
 grant execute on function consume_credit(uuid, text, jsonb) to service_role;
@@ -554,5 +587,17 @@ grant execute on function refund_credit(uuid, text, jsonb) to service_role;
 grant execute on function grant_credits(uuid, integer, text, text, jsonb) to service_role;
 grant execute on function admin_adjust_credits(uuid, integer, text, text) to service_role;
 grant execute on function reconcile_stale_analysis_runs(uuid, interval) to service_role;
+grant execute on function complete_analysis_run(uuid) to service_role;
+
+-- These functions are plain plpgsql (invoker rights, not SECURITY
+-- DEFINER), so the update/insert statements inside them run as
+-- whatever role actually calls them — service_role here. A standard
+-- Supabase project's default privileges already cover this (consume_
+-- credit's own insert has been working without an explicit grant), but
+-- refund_credit, complete_analysis_run, and reconcile_stale_analysis_
+-- runs all now also *update* the new status column specifically, so
+-- this grant is made explicit rather than left to rely on how a given
+-- project's default privileges happen to be configured.
+grant update on table public.credit_transactions to service_role;
 
 commit;

@@ -101,6 +101,28 @@ export async function reconcileStaleAnalysisRuns(userId: string): Promise<number
 }
 
 /**
+ * Marks a Run Analysis call's reservation as completed — call this
+ * immediately after a successful Anthropic response, so
+ * reconcileStaleAnalysisRuns never mistakes a completed, legitimately
+ * spent credit for one stuck mid-request and refunds it by mistake.
+ * Returns true if a pending reservation was found and completed, false
+ * if there was nothing to claim. Never throws.
+ */
+export async function completeAnalysisRun(userId: string): Promise<boolean> {
+  const db = getServiceRoleClient();
+  if (!db) return false;
+
+  const { data, error } = await db.rpc("complete_analysis_run", {
+    p_user_id: userId,
+  });
+  if (error) {
+    console.error("[credits] completeAnalysisRun failed:", error.message);
+    return false;
+  }
+  return Boolean(data);
+}
+
+/**
  * Grants credits — used for Stripe purchase fulfillment (pass the Stripe
  * event id for idempotency) and for manually adding credits by hand.
  */

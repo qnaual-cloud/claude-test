@@ -19,7 +19,7 @@ import { DashboardSchema, type DashboardData } from "./dashboardSchema";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 const PROSE_MAX_TOKENS = 4096;
-const DASHBOARD_MAX_TOKENS = 3072;
+const DASHBOARD_MAX_TOKENS = 6144;
 
 // On by default so research reflects current information, not just the
 // model's training data. Adds metered cost per search on top of normal

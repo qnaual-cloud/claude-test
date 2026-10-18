@@ -149,13 +149,13 @@ on conflict (domain) do nothing;
 -- insert time, or confirmed later via update — never both), so this is
 -- never invoked twice for the same signup under normal operation.
 --
--- The balance update runs first and its actual row_count is checked
--- before logging anything — this is what guarantees a transaction row
--- is never written without a matching balance change (e.g. if this is
--- ever called for a user_id with no profiles row yet). The unique
--- index on (user_id) where reason = 'signup_bonus' is the backstop
--- against a genuine concurrent double-call ever recording two bonus
--- rows for the same user.
+-- The credit_transactions insert is the atomic gate, not the balance
+-- update: the unique index on (user_id) where reason = 'signup_bonus'
+-- guarantees at most one insert ever succeeds per user, even under a
+-- genuine concurrent double-call. Only the call whose insert actually
+-- succeeds goes on to update the balance — a concurrent duplicate's
+-- insert is silently skipped (on conflict do nothing) and returns
+-- immediately without ever touching credits_balance.
 create or replace function grant_signup_bonus(p_user_id uuid, p_email text)
 returns void
 language plpgsql
@@ -163,7 +163,7 @@ security definer set search_path = public
 as $$
 declare
   v_domain text;
-  v_updated integer;
+  v_inserted integer;
 begin
   if exists (
     select 1 from credit_transactions where user_id = p_user_id and reason = 'signup_bonus'
@@ -176,19 +176,19 @@ begin
     return;
   end if;
 
+  insert into credit_transactions (user_id, amount, reason)
+  values (p_user_id, 5, 'signup_bonus')
+  on conflict do nothing;
+
+  get diagnostics v_inserted = row_count;
+  if v_inserted = 0 then
+    return; -- lost the race (or already granted) — do not touch the balance
+  end if;
+
   update profiles
   set credits_balance = credits_balance + 5,
       updated_at = now()
   where id = p_user_id;
-
-  get diagnostics v_updated = row_count;
-  if v_updated = 0 then
-    return; -- no profile row for this user — nothing to credit, nothing to log
-  end if;
-
-  insert into credit_transactions (user_id, amount, reason)
-  values (p_user_id, 5, 'signup_bonus')
-  on conflict do nothing;
 end;
 $$;
 

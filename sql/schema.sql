@@ -4,6 +4,20 @@
 -- db push`). These tables are written to only from server-side code using
 -- the service-role key — Row Level Security is enabled with no public
 -- policies, so anon/client keys cannot read or write them directly.
+--
+-- Safe to re-run against a project that already has this exact schema —
+-- every statement below is idempotent (if not exists / or replace / on
+-- conflict do nothing). Wrapped in a transaction so a project with
+-- *pre-existing* data that conflicts with a new constraint (see the
+-- signup_bonus unique index below) fails and rolls back atomically
+-- instead of leaving the schema half-upgraded.
+--
+-- This file does NOT backfill profiles or signup bonuses for users who
+-- already existed before this script ran — that's intentionally a
+-- separate, one-time script, since it touches existing user data rather
+-- than just defining schema.
+
+begin;
 
 create table if not exists early_access_emails (
   id uuid primary key default gen_random_uuid(),
@@ -82,34 +96,30 @@ create unique index if not exists credit_transactions_stripe_event_id_idx
   on credit_transactions (stripe_event_id)
   where stripe_event_id is not null;
 
+-- Enforces "exactly once" for the signup bonus at the database level,
+-- not just in application logic — a second attempt to grant it for the
+-- same user (e.g. a retried request, or a race between two concurrent
+-- triggers) fails this constraint rather than double-crediting.
+--
+-- IMPORTANT if running against a project with existing data: this will
+-- fail to create if any user already has more than one 'signup_bonus'
+-- transaction recorded. Check first with:
+--   select user_id, count(*) from credit_transactions
+--   where reason = 'signup_bonus' group by user_id having count(*) > 1;
+-- If that returns rows, resolve them before re-running this script —
+-- the whole transaction rolls back cleanly otherwise, so nothing else
+-- here is at risk, but this specific statement won't succeed until
+-- the duplicates are gone.
+create unique index if not exists credit_transactions_one_signup_bonus_per_user_idx
+  on credit_transactions (user_id)
+  where reason = 'signup_bonus';
+
 alter table profiles enable row level security;
 alter table credit_transactions enable row level security;
 
--- New account setup: creates the profile row with 0 credits. The 5
--- starter credits are granted separately, on email confirmation (see
--- handle_user_email_confirmed below) — not here — so an unconfirmed
--- account can't be used to farm free credits without a working inbox.
-create or replace function handle_new_user()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  insert into public.profiles (id, full_name, email, credits_balance, membership_tier)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', ''), new.email, 0, 'free');
-
-  return new;
-end;
-$$;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function handle_new_user();
-
 -- Editable blocklist of disposable/temporary email domains, checked
--- before granting the signup bonus (see handle_user_email_confirmed
--- below). Add or remove domains any time:
+-- before granting the signup bonus (see grant_signup_bonus below). Add
+-- or remove domains any time:
 --   insert into blocked_email_domains (domain) values ('example.com');
 --   delete from blocked_email_domains where domain = 'example.com';
 -- This is a "basic safeguard", not a complete one — it stops the common
@@ -127,45 +137,100 @@ insert into blocked_email_domains (domain) values
   ('mailnesia.com'), ('dispostable.com'), ('mintemail.com')
 on conflict (domain) do nothing;
 
--- Grants the 5 starter credits exactly once, the moment an account's
--- email is confirmed (transition from unconfirmed to confirmed) —
--- requires "Confirm email" to be enabled in your Supabase project's
--- Auth settings, otherwise email_confirmed_at is set immediately at
--- signup and this fires right away, same as before. Skips the grant
--- (silently — the account still works, just without the bonus) if the
--- confirmed email's domain is on the blocklist above, or if a bonus was
--- already recorded for this user.
-create or replace function handle_user_email_confirmed()
-returns trigger
+-- Grants the 5 starter credits exactly once for a given user, if
+-- eligible. Shared by both triggers below so the bonus is correctly
+-- granted whether "Confirm email" is enabled or disabled in this
+-- project's Auth settings:
+--   - disabled: email_confirmed_at is already set the instant the user
+--     row is first inserted, so handle_new_user grants it immediately.
+--   - enabled: email_confirmed_at starts null and is set later, on the
+--     confirmation click, so handle_user_email_confirmed grants it then.
+-- Those are mutually exclusive events for a given user (confirmed at
+-- insert time, or confirmed later via update — never both), so this is
+-- never invoked twice for the same signup under normal operation.
+--
+-- The balance update runs first and its actual row_count is checked
+-- before logging anything — this is what guarantees a transaction row
+-- is never written without a matching balance change (e.g. if this is
+-- ever called for a user_id with no profiles row yet). The unique
+-- index on (user_id) where reason = 'signup_bonus' is the backstop
+-- against a genuine concurrent double-call ever recording two bonus
+-- rows for the same user.
+create or replace function grant_signup_bonus(p_user_id uuid, p_email text)
+returns void
 language plpgsql
 security definer set search_path = public
 as $$
 declare
   v_domain text;
+  v_updated integer;
 begin
-  if old.email_confirmed_at is not null or new.email_confirmed_at is null then
-    return new;
-  end if;
-
   if exists (
-    select 1 from credit_transactions where user_id = new.id and reason = 'signup_bonus'
+    select 1 from credit_transactions where user_id = p_user_id and reason = 'signup_bonus'
   ) then
-    return new;
+    return;
   end if;
 
-  v_domain := lower(split_part(new.email, '@', 2));
+  v_domain := lower(split_part(p_email, '@', 2));
   if exists (select 1 from blocked_email_domains where domain = v_domain) then
-    return new;
+    return;
   end if;
 
   update profiles
   set credits_balance = credits_balance + 5,
       updated_at = now()
-  where id = new.id;
+  where id = p_user_id;
 
-  insert into public.credit_transactions (user_id, amount, reason)
-  values (new.id, 5, 'signup_bonus');
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    return; -- no profile row for this user — nothing to credit, nothing to log
+  end if;
 
+  insert into credit_transactions (user_id, amount, reason)
+  values (p_user_id, 5, 'signup_bonus')
+  on conflict do nothing;
+end;
+$$;
+
+-- New account setup: creates the profile row with 0 credits, then
+-- grants the signup bonus immediately if the email is already
+-- confirmed at this point (the "Confirm email" disabled case — see
+-- grant_signup_bonus above). Otherwise the bonus waits for
+-- handle_user_email_confirmed below.
+create or replace function handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, full_name, email, credits_balance, membership_tier)
+  values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', ''), new.email, 0, 'free');
+
+  if new.email_confirmed_at is not null then
+    perform grant_signup_bonus(new.id, new.email);
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function handle_new_user();
+
+-- Grants the signup bonus on the unconfirmed-to-confirmed transition —
+-- the "Confirm email" enabled case (see grant_signup_bonus above for
+-- the disabled case, handled in handle_new_user instead).
+create or replace function handle_user_email_confirmed()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if old.email_confirmed_at is null and new.email_confirmed_at is not null then
+    perform grant_signup_bonus(new.id, new.email);
+  end if;
   return new;
 end;
 $$;
@@ -226,6 +291,12 @@ begin
   where id = p_user_id
   returning credits_balance into v_new_balance;
 
+  -- No profile matched (e.g. a stale/bad id) — don't log a refund that
+  -- never actually changed a balance.
+  if v_new_balance is null then
+    return null;
+  end if;
+
   insert into credit_transactions (user_id, amount, reason, metadata)
   values (p_user_id, 1, p_reason, p_metadata);
 
@@ -261,6 +332,12 @@ begin
       updated_at = now()
   where id = p_user_id
   returning credits_balance into v_new_balance;
+
+  -- No profile matched — don't log a grant that never actually
+  -- changed a balance.
+  if v_new_balance is null then
+    return null;
+  end if;
 
   insert into credit_transactions (user_id, amount, reason, stripe_event_id, metadata)
   values (p_user_id, p_amount, p_reason, p_stripe_event_id, p_metadata);
@@ -332,3 +409,40 @@ begin
   return v_new_balance;
 end;
 $$;
+
+-- ============================================================
+-- Lock down the credit-changing functions
+-- ============================================================
+-- Postgres grants EXECUTE on a newly created function to PUBLIC by
+-- default — meaning anon/authenticated could otherwise call any of
+-- these directly via the PostgREST RPC endpoint (/rest/v1/rpc/...),
+-- bypassing the app's own auth/ownership checks entirely.
+--
+-- grant_signup_bonus is the most important one to lock down here: it's
+-- SECURITY DEFINER (runs with the function owner's privileges), so RLS
+-- does not protect against calling it directly the way it does for
+-- consume_credit/refund_credit/grant_credits/admin_adjust_credits
+-- below (not SECURITY DEFINER — a direct call from anon/authenticated
+-- would run as that role, and RLS with no policies would block it from
+-- touching profiles/credit_transactions at all). handle_new_user and
+-- handle_user_email_confirmed need no entry here: they `returns
+-- trigger`, which Postgres only allows to run as an actual trigger
+-- callback, never as a direct call — no grant can change that.
+--
+-- Only service_role (used exclusively by server-side code, after it
+-- has already verified the caller's own session) keeps EXECUTE.
+-- set_membership_tier is deliberately left as-is here — it doesn't
+-- change credits, and tightening it is a separate decision.
+revoke execute on function grant_signup_bonus(uuid, text) from public, anon, authenticated;
+revoke execute on function consume_credit(uuid, text, jsonb) from public, anon, authenticated;
+revoke execute on function refund_credit(uuid, text, jsonb) from public, anon, authenticated;
+revoke execute on function grant_credits(uuid, integer, text, text, jsonb) from public, anon, authenticated;
+revoke execute on function admin_adjust_credits(uuid, integer, text, text) from public, anon, authenticated;
+
+grant execute on function grant_signup_bonus(uuid, text) to service_role;
+grant execute on function consume_credit(uuid, text, jsonb) to service_role;
+grant execute on function refund_credit(uuid, text, jsonb) to service_role;
+grant execute on function grant_credits(uuid, integer, text, text, jsonb) to service_role;
+grant execute on function admin_adjust_credits(uuid, integer, text, text) to service_role;
+
+commit;

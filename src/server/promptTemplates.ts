@@ -104,7 +104,7 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "step-by-step":
         "Walk through the valuation step by step, showing the calculation logic at each stage, not just the final numbers.",
       "research-dashboard":
-        "Present the findings as a structured research dashboard: a one-line headline verdict on valuation, 3-6 key metrics with values (e.g. estimated intrinsic value, current price, margin of safety), a short list of strengths, a short list of risks, and the key sections of the analysis — organized for at-a-glance scanning rather than long-form prose.",
+        "Present the findings as a structured research dashboard: a one-line headline verdict on valuation, 3-6 key metrics with values (e.g. estimated intrinsic value, current price, margin of safety), a short list of strengths, a short list of risks, the key sections of the analysis, and the key assumptions behind the valuation — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear valuation-analyst role and objective",
@@ -112,6 +112,11 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "Structured, specific analysis checklist",
       "Explicit output format",
       "Verification and assumption-transparency instructions",
+      "Explicit sourcing, date, and assumption-vs-fact distinction for valuation inputs",
+    ],
+    extraConstraints: [
+      "For the current price and any financial inputs used in the valuation (revenue, margins, cash flow, etc.), state the source and as-of date — and clearly label the discount rate, growth rate, and terminal value as modeling assumptions, not verified facts.",
+      "If the current market price is not available to you or may be outdated, say so explicitly rather than treating it as current.",
     ],
   },
 
@@ -136,7 +141,7 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
         "Present the findings as a full structured report with clear section headings.",
       memo: "Present the findings as an investment memo suitable for sharing with another investor.",
       "research-dashboard":
-        "Present the findings as a structured research dashboard: a one-line headline verdict on which investment looks stronger and why, 3-6 key comparison metrics with values for each investment, a short list of strengths, a short list of risks, and the key sections of the comparison — organized for at-a-glance scanning rather than long-form prose.",
+        "Present the findings as a structured research dashboard: a one-line headline verdict on which investment looks stronger and why, 3-6 key comparison metrics with values for each investment — prioritizing the metrics most relevant to the investment decision over even coverage of every investment — a short list of strengths, a short list of risks, the key sections of the comparison, and the key assumptions behind the comparison — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear comparative-analyst role and objective",
@@ -144,6 +149,11 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "Structured, specific comparison checklist",
       "Explicit output format",
       "Verification and assumption-transparency instructions",
+      "Explicit sourcing, date, and verified-vs-estimate requirement across all compared investments",
+    ],
+    extraConstraints: [
+      "For each investment's key figures, state the source and as-of date, and clearly label each figure as a verified reported number or an estimate — never invent a figure for any investment in the comparison.",
+      "If data for one investment is unavailable, outdated, or not directly comparable (e.g. a different fiscal period), say so explicitly rather than filling the gap or treating the comparison as perfectly aligned.",
     ],
   },
 
@@ -165,13 +175,18 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "full-report":
         "Present the findings as a full structured report with clear section headings.",
       "research-dashboard":
-        "Present the findings as a structured research dashboard: a one-line headline verdict on the results, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the analysis — organized for at-a-glance scanning rather than long-form prose.",
+        "Present the findings as a structured research dashboard: a one-line headline verdict on the results, 3-6 key metrics with values, a short list of strengths, a short list of risks, the key sections of the analysis, and the key assumptions behind the analysis — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear markets-analyst role and objective",
       "Structured, specific analysis checklist",
       "Explicit output format",
       "Verification and assumption-transparency instructions",
+      "Explicit sourcing, date, and reported-vs-estimate distinction for results and guidance",
+    ],
+    extraConstraints: [
+      "For reported results and guidance, state the source and as-of date (e.g. the specific quarter and release), and clearly distinguish GAAP from non-GAAP figures and actual results from analyst or consensus estimates.",
+      "If a figure such as a consensus estimate or guidance detail isn't available or verifiable, say so explicitly rather than estimating it.",
     ],
   },
 
@@ -194,13 +209,18 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "full-report":
         "Present the findings as a full structured report with clear section headings.",
       "research-dashboard":
-        "Present the findings as a structured research dashboard: a one-line headline verdict, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the analysis — organized for at-a-glance scanning rather than long-form prose.",
+        "Present the findings as a structured research dashboard: a one-line headline verdict, 3-6 key metrics with values, a short list of strengths, a short list of risks, the key sections of the analysis, and the key assumptions behind the analysis — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear markets-analyst role and objective",
       "Structured, specific analysis checklist",
       "Explicit output format",
       "Verification and assumption-transparency instructions",
+      "Explicit sourcing, date, and data-vs-interpretation distinction",
+    ],
+    extraConstraints: [
+      "For market, sector, and valuation data, state the source and as-of date, and explicitly flag when market conditions may have moved since that data was current.",
+      "Distinguish objective data (e.g. valuation multiples, flows) from subjective judgment (e.g. sentiment, positioning), and label sentiment assessments as interpretation, not verified fact.",
     ],
   },
 
@@ -235,7 +255,7 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "action-checklist":
         "Present the findings as a short, prioritized checklist of concrete actions to consider.",
       "research-dashboard":
-        "Present the findings as a structured research dashboard: a one-line headline verdict on portfolio health, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the review — organized for at-a-glance scanning rather than long-form prose.",
+        "Present the findings as a structured research dashboard: a one-line headline verdict on portfolio health, 3-6 key metrics with values — prioritizing the holdings and risks most relevant to the stated review goal over even coverage of every holding — a short list of strengths, a short list of risks, the key sections of the review, and the key assumptions behind the review — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear portfolio-analyst role and objective",
@@ -243,6 +263,11 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "Structured, specific review checklist",
       "Explicit output format",
       "Verification and assumption-transparency instructions",
+      "Explicit sourcing/date and estimate-labeling for portfolio figures",
+    ],
+    extraConstraints: [
+      "Use the holdings and weights the user provided rather than assuming different ones, and state the as-of date for each holding's price or value, flagging explicitly if live pricing data isn't available.",
+      "Label diversification, correlation, and rebalancing figures as estimates based on available data, not precise guarantees.",
     ],
   },
 
@@ -275,18 +300,18 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "full-report":
         "Present the findings as a full structured report with clear section headings.",
       "research-dashboard":
-        "Present the findings as a structured research dashboard: a one-line headline verdict, 3-6 key metrics with values, a short list of strengths, a short list of risks, and the key sections of the screen — organized for at-a-glance scanning rather than long-form prose.",
+        "Present the findings as a structured research dashboard: a one-line headline verdict, 3-6 key metrics with values, a short list of strengths, a short list of risks, the key sections of the screen, and the key assumptions behind the screen — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear analyst role and objective",
       "Screening approach shapes which companies surface",
       "Structured, specific screening criteria",
       "Explicit output format",
-      "Explicit no-invented-figures and sourcing requirement",
+      "Explicit no-invented-figures, sourcing, and date requirement",
     ],
     extraConstraints: [
       "Only include companies, tickers, and figures that are genuinely verifiable — never invent a name, ticker, or financial figure. If a precise current figure isn't available, say so explicitly rather than estimating or guessing at a number.",
-      "State the source or basis for each company's inclusion in the shortlist (e.g. the metric and approximate value that qualified it).",
+      "State the source, approximate as-of date, and basis for each company's inclusion in the shortlist (e.g. the metric and approximate value that qualified it), and label any approximate or estimated figure as such.",
     ],
   },
 
@@ -317,18 +342,18 @@ export const categoryTemplates: Record<string, CategoryTemplate> = {
       "talking-points":
         "Present the brief as 5-7 concise, meeting-ready talking points — each a short, speakable line, not a paragraph. Cover: what changed, why it matters, opportunities, risks, and questions for the committee to consider.",
       "research-dashboard":
-        "Present the brief as a structured research dashboard: a one-line headline verdict, 3-6 key points with values, a short list of strengths, a short list of risks, and the key sections of the brief — organized for at-a-glance scanning rather than long-form prose.",
+        "Present the brief as a structured research dashboard: a one-line headline verdict, 3-6 key points with values, a short list of strengths, a short list of risks, the key sections of the brief, and the key assumptions behind the brief — organized for at-a-glance scanning rather than long-form prose.",
     },
     whyItWorksBase: [
       "Clear professional role and objective",
       "Brief type shapes tone and depth for the intended audience",
       "Structured, specific content checklist",
       "Explicit output format",
-      "Explicit sources-only requirement — no invented data",
+      "Explicit sourcing, date, and estimate-labeling requirement — no invented data",
     ],
     extraConstraints: [
-      "Base every claim on verifiable, sourced information and cite the source or basis for each fact or figure used. Do not invent data, quotes, or figures.",
-      "If information needed for a complete brief isn't available or verifiable, state that explicitly rather than filling the gap with an assumption.",
+      "Base every claim on verifiable, sourced information, cite the source and approximate as-of date for each key fact or figure, and clearly label any estimate or forward-looking judgment as such. Do not invent data, quotes, or figures.",
+      "If information needed for a complete brief isn't available or verifiable, state that explicitly rather than filling the gap with an unlabeled assumption.",
     ],
   },
 };

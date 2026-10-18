@@ -114,6 +114,25 @@ create unique index if not exists credit_transactions_one_signup_bonus_per_user_
   on credit_transactions (user_id)
   where reason = 'signup_bonus';
 
+-- Tracks whether a 1-credit reservation is still outstanding, already
+-- completed normally, or already refunded. Only 'analysis_run' rows
+-- ever start as 'pending' (see consume_credit below) — every other
+-- reason is written once and is always 'completed'. This backs the
+-- reconciliation safety net further down: a reservation that's still
+-- 'pending' long after it was made means the request that made it
+-- never got to call refund_credit (e.g. the serverless function was
+-- killed by a platform timeout), so it's safe to refund automatically.
+--
+-- Existing rows get backfilled to 'completed' by the column default
+-- below — this is NOT a retroactive fix for credits already stuck
+-- before this migration ran; those still need a manual admin credit
+-- adjustment (see README / admin panel).
+alter table credit_transactions add column if not exists status text not null default 'completed';
+
+alter table credit_transactions drop constraint if exists credit_transactions_status_check;
+alter table credit_transactions add constraint credit_transactions_status_check
+  check (status in ('pending', 'completed', 'refunded'));
+
 alter table profiles enable row level security;
 alter table credit_transactions enable row level security;
 
@@ -271,15 +290,26 @@ begin
     return null;
   end if;
 
-  insert into credit_transactions (user_id, amount, reason, metadata)
-  values (p_user_id, -1, p_reason, p_metadata);
+  -- 'analysis_run' reservations start 'pending' until refund_credit
+  -- (normal failure path) or reconcile_stale_analysis_runs (safety
+  -- net) closes them out — see the status column comment above.
+  -- Every other reason is written once and is always 'completed'.
+  insert into credit_transactions (user_id, amount, reason, metadata, status)
+  values (
+    p_user_id, -1, p_reason, p_metadata,
+    case when p_reason = 'analysis_run' then 'pending' else 'completed' end
+  );
 
   return v_new_balance;
 end;
 $$;
 
 -- Refunds 1 credit (used when a Run Analysis call fails after a credit
--- was already reserved via consume_credit).
+-- was already reserved via consume_credit). Also claims and closes out
+-- the matching pending reservation (the most recent one for this user)
+-- so reconcile_stale_analysis_runs never double-refunds it later.
+-- `for update skip locked` makes the claim safe if this ever races with
+-- the reconciliation sweep for the same user.
 create or replace function refund_credit(
   p_user_id uuid,
   p_reason text default 'refund',
@@ -290,7 +320,19 @@ language plpgsql
 as $$
 declare
   v_new_balance integer;
+  v_claimed_id uuid;
 begin
+  update credit_transactions
+  set status = 'refunded'
+  where id in (
+    select id from credit_transactions
+    where user_id = p_user_id and reason = 'analysis_run' and status = 'pending'
+    order by created_at desc
+    limit 1
+    for update skip locked
+  )
+  returning id into v_claimed_id;
+
   update profiles
   set credits_balance = credits_balance + 1,
       updated_at = now()
@@ -303,10 +345,70 @@ begin
     return null;
   end if;
 
-  insert into credit_transactions (user_id, amount, reason, metadata)
-  values (p_user_id, 1, p_reason, p_metadata);
+  insert into credit_transactions (user_id, amount, reason, metadata, status)
+  values (
+    p_user_id, 1, p_reason,
+    case when v_claimed_id is not null
+      then p_metadata || jsonb_build_object('reconciledTransactionId', v_claimed_id)
+      else p_metadata
+    end,
+    'completed'
+  );
 
   return v_new_balance;
+end;
+$$;
+
+-- Safety net for credits "stuck" in a pending reservation — e.g. the
+-- serverless function behind Run Analysis was killed by a platform
+-- timeout before its own refund_credit call could run. Finds this
+-- user's analysis_run reservations still pending after p_stale_after
+-- (default 10 minutes — comfortably longer than the Run Analysis
+-- route's own 300s maxDuration plus its internal cutoff, so a request
+-- that's merely slow is never mistaken for stuck) and refunds each one
+-- exactly once. Cheap and safe to call often and from multiple places:
+-- `for update skip locked` means concurrent calls (e.g. a page load and
+-- a new Run Analysis click landing at the same moment) never double-
+-- refund the same row. Returns the number of credits restored (0 if
+-- nothing was stale).
+create or replace function reconcile_stale_analysis_runs(
+  p_user_id uuid,
+  p_stale_after interval default '10 minutes'
+)
+returns integer
+language plpgsql
+as $$
+declare
+  v_restored integer := 0;
+  v_row record;
+begin
+  for v_row in
+    select id from credit_transactions
+    where user_id = p_user_id
+      and reason = 'analysis_run'
+      and status = 'pending'
+      and created_at < now() - p_stale_after
+    order by created_at
+    for update skip locked
+  loop
+    update credit_transactions set status = 'refunded' where id = v_row.id;
+
+    update profiles
+    set credits_balance = credits_balance + 1,
+        updated_at = now()
+    where id = p_user_id;
+
+    insert into credit_transactions (user_id, amount, reason, metadata, status)
+    values (
+      p_user_id, 1, 'refund',
+      jsonb_build_object('reconciledTransactionId', v_row.id, 'autoReconciled', true),
+      'completed'
+    );
+
+    v_restored := v_restored + 1;
+  end loop;
+
+  return v_restored;
 end;
 $$;
 
@@ -444,11 +546,13 @@ revoke execute on function consume_credit(uuid, text, jsonb) from public, anon, 
 revoke execute on function refund_credit(uuid, text, jsonb) from public, anon, authenticated;
 revoke execute on function grant_credits(uuid, integer, text, text, jsonb) from public, anon, authenticated;
 revoke execute on function admin_adjust_credits(uuid, integer, text, text) from public, anon, authenticated;
+revoke execute on function reconcile_stale_analysis_runs(uuid, interval) from public, anon, authenticated;
 
 grant execute on function grant_signup_bonus(uuid, text) to service_role;
 grant execute on function consume_credit(uuid, text, jsonb) to service_role;
 grant execute on function refund_credit(uuid, text, jsonb) to service_role;
 grant execute on function grant_credits(uuid, integer, text, text, jsonb) to service_role;
 grant execute on function admin_adjust_credits(uuid, integer, text, text) to service_role;
+grant execute on function reconcile_stale_analysis_runs(uuid, interval) to service_role;
 
 commit;

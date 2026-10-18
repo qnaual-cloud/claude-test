@@ -21,6 +21,15 @@ const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 const PROSE_MAX_TOKENS = 4096;
 const DASHBOARD_MAX_TOKENS = 6144;
 
+// Keep comfortably under the /api/run-analysis route's own `maxDuration`
+// (300s, see route.ts) so a call that's genuinely stuck gets stopped by
+// *our* code — which throws a handled error and still lets the route's
+// catch block run refundCredit() — rather than by Vercel hard-killing the
+// function at the platform timeout, which runs none of our code at all
+// (the original cause of a credit never being refunded; see the stale
+// reservation safety net in sql/schema.sql / reconcileStaleAnalysisRuns).
+const ANALYSIS_TIMEOUT_MS = 270_000;
+
 // On by default so research reflects current information, not just the
 // model's training data. Adds metered cost per search on top of normal
 // token cost — set ANTHROPIC_ENABLE_WEB_SEARCH=false to disable.
@@ -63,6 +72,19 @@ function mapKnownError(err: unknown): never {
   if (err instanceof Anthropic.RateLimitError) {
     throw new AnalysisFailedError("Rate limited by the Anthropic API — please try again shortly.");
   }
+  // Most-specific-first: APIConnectionTimeoutError extends
+  // APIConnectionError extends APIError, so these must be checked before
+  // the generic APIError branch below.
+  if (err instanceof Anthropic.APIConnectionTimeoutError) {
+    throw new AnalysisFailedError(
+      "The analysis took longer than expected and was stopped automatically. Your credit has been refunded — please try again, or select fewer focus areas for a faster result."
+    );
+  }
+  if (err instanceof Anthropic.APIConnectionError) {
+    throw new AnalysisFailedError(
+      "Couldn't reach the analysis service. Your credit has been refunded — please try again."
+    );
+  }
   if (err instanceof Anthropic.APIError) {
     throw new AnalysisFailedError(`Analysis failed: ${err.message}`);
   }
@@ -79,16 +101,27 @@ export async function runResearchAnalysis(input: RunAnalysisInput): Promise<RunA
 
   if (input.outputFormatId === "research-dashboard") {
     try {
-      const response = await anthropic.messages.parse({
-        model: MODEL,
-        max_tokens: DASHBOARD_MAX_TOKENS,
-        output_config: {
-          format: zodOutputFormat(DashboardSchema),
-          effort: "medium",
-        },
-        tools: WEB_SEARCH_ENABLED ? WEB_SEARCH_TOOLS : undefined,
-        messages: [{ role: "user", content: input.prompt }],
-      });
+      // Streaming (rather than messages.parse()) so a long-running
+      // dashboard request — web search plus a large structured response —
+      // doesn't sit as one unbroken wait that risks the platform's own
+      // timeout. output_config.format still gets automatically parsed and
+      // validated into parsed_output on the final message, exactly like
+      // messages.parse() — see the SDK's own messages.stream() docstring.
+      const response = await anthropic.messages
+        .stream(
+          {
+            model: MODEL,
+            max_tokens: DASHBOARD_MAX_TOKENS,
+            output_config: {
+              format: zodOutputFormat(DashboardSchema),
+              effort: "medium",
+            },
+            tools: WEB_SEARCH_ENABLED ? WEB_SEARCH_TOOLS : undefined,
+            messages: [{ role: "user", content: input.prompt }],
+          },
+          { timeout: ANALYSIS_TIMEOUT_MS }
+        )
+        .finalMessage();
 
       // Diagnostic only — stop_reason and token counts, never prompt text
       // or the parsed research content, so nothing user- or company-
@@ -118,13 +151,20 @@ export async function runResearchAnalysis(input: RunAnalysisInput): Promise<RunA
   }
 
   try {
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: PROSE_MAX_TOKENS,
-      output_config: { effort: "medium" },
-      tools: WEB_SEARCH_ENABLED ? WEB_SEARCH_TOOLS : undefined,
-      messages: [{ role: "user", content: input.prompt }],
-    });
+    // Streaming (rather than messages.create()) for the same reason as
+    // the dashboard path above — avoid one unbroken multi-minute wait.
+    const response = await anthropic.messages
+      .stream(
+        {
+          model: MODEL,
+          max_tokens: PROSE_MAX_TOKENS,
+          output_config: { effort: "medium" },
+          tools: WEB_SEARCH_ENABLED ? WEB_SEARCH_TOOLS : undefined,
+          messages: [{ role: "user", content: input.prompt }],
+        },
+        { timeout: ANALYSIS_TIMEOUT_MS }
+      )
+      .finalMessage();
 
     // Diagnostic only — stop_reason and token counts, never prompt text or
     // the generated research content, so nothing user- or company-specific

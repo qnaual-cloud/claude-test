@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabaseServerAuth";
-import { getProfile, CreditsNotConfiguredError } from "@/lib/credits";
+import { getProfile, reconcileStaleAnalysisRuns, CreditsNotConfiguredError } from "@/lib/credits";
 
 export async function GET() {
   const user = await getAuthenticatedUser();
@@ -9,6 +9,13 @@ export async function GET() {
   }
 
   try {
+    // Opportunistic safety net: if a past analysis was interrupted
+    // (e.g. a platform timeout) before it could refund its own
+    // reserved credit, restore it here so the balance self-heals the
+    // next time the user looks at it — never blocks or fails this
+    // request if it errors.
+    await reconcileStaleAnalysisRuns(user.id);
+
     const profile = await getProfile(user.id);
     if (!profile) {
       return NextResponse.json({ signedIn: true, profile: null });

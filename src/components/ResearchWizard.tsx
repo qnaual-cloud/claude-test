@@ -24,6 +24,13 @@ import {
   type PendingResearchAnswers,
 } from "@/lib/pendingResearch";
 
+// Comfortably longer than the /api/run-analysis route's own maxDuration
+// (300s) plus its internal cutoff, so the server always gets a chance to
+// respond on its own first. This is a last-resort bound so the "Analyzing…"
+// state can never hang indefinitely if something upstream never responds
+// at all — in the normal case the server itself returns well before this.
+const RUN_ANALYSIS_TIMEOUT_MS = 320_000;
+
 type StepKind = "entity" | "role" | "chips" | "format";
 type Phase = "form" | "loading" | "review" | "error" | "auth-required";
 type AnalysisPhase = "idle" | "running" | "done" | "error";
@@ -254,6 +261,10 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
     setAnalysisPhase("running");
     setAnalysisError("");
     setAnalysisErrorStatus(null);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), RUN_ANALYSIS_TIMEOUT_MS);
+
     try {
       const res = await fetch("/api/run-analysis", {
         method: "POST",
@@ -264,25 +275,52 @@ export function ResearchWizard({ category }: { category: CategoryConfig }) {
           outputFormatId,
           sessionId,
         }),
+        signal: controller.signal,
       });
-      const data = await res.json();
+
+      let data: Record<string, unknown>;
+      try {
+        data = await res.json();
+      } catch {
+        // No parseable JSON body — e.g. a platform-level error page
+        // rather than our own route's response. Treat it like a timeout:
+        // the server-side reconciliation safety net (see credits.ts)
+        // restores any credit left stuck pending, so it's safe to say so.
+        setAnalysisError(
+          "The analysis didn't finish in time. If a credit was used, it will be automatically restored — please try again in a moment."
+        );
+        setAnalysisErrorStatus(res.status || null);
+        setAnalysisPhase("error");
+        return;
+      }
+
       if (!res.ok) {
-        setAnalysisError(data.error || "Something went wrong.");
+        setAnalysisError((data.error as string) || "Something went wrong. Please try again.");
         setAnalysisErrorStatus(res.status);
         setAnalysisPhase("error");
         return;
       }
-      setAnalysisResult(data);
+      setAnalysisResult(data as unknown as AnalysisResult);
       setAnalysisPhase("done");
       // Update the balance immediately from the response rather than
       // waiting on the refetch notifyCreditsChanged() below triggers.
       setAuth((prev) =>
-        prev.status === "signed-in" ? { ...prev, creditsBalance: data.creditsRemaining } : prev
+        prev.status === "signed-in"
+          ? { ...prev, creditsBalance: data.creditsRemaining as number }
+          : prev
       );
       notifyCreditsChanged();
-    } catch {
-      setAnalysisError("Something went wrong.");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setAnalysisError(
+          "The analysis is taking longer than expected and was stopped. If a credit was used, it will be automatically restored — please try again in a moment."
+        );
+      } else {
+        setAnalysisError("Something went wrong. Please try again.");
+      }
       setAnalysisPhase("error");
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

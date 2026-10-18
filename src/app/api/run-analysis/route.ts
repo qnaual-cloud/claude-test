@@ -6,7 +6,12 @@ import {
 } from "@/server/anthropicClient";
 import { logAnalyticsEvent } from "@/lib/supabaseServer";
 import { getAuthenticatedUser } from "@/lib/supabaseServerAuth";
-import { consumeCredit, refundCredit, CreditsNotConfiguredError } from "@/lib/credits";
+import {
+  consumeCredit,
+  refundCredit,
+  reconcileStaleAnalysisRuns,
+  CreditsNotConfiguredError,
+} from "@/lib/credits";
 
 interface RequestBody {
   prompt?: string;
@@ -16,6 +21,14 @@ interface RequestBody {
 }
 
 const MAX_PROMPT_LENGTH = 6000;
+
+// Vercel Hobby + Fluid Compute ceiling. Set to the plan's maximum because
+// a Research Dashboard call (web search + a long structured response) can
+// legitimately take several minutes. See ANALYSIS_TIMEOUT_MS in
+// anthropicClient.ts — our own in-code timeout fires comfortably before
+// this, so our catch block (and refundCredit below) gets to run instead
+// of the platform hard-killing the function with no chance to clean up.
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   const user = await getAuthenticatedUser();
@@ -41,6 +54,11 @@ export async function POST(request: Request) {
   if (typeof prompt !== "string" || prompt.length > MAX_PROMPT_LENGTH) {
     return NextResponse.json({ error: "Invalid prompt." }, { status: 400 });
   }
+
+  // Opportunistic safety net: restore any credit left stuck "pending"
+  // by a past run that was interrupted before it could refund itself
+  // (e.g. a platform timeout), before this request spends a new one.
+  await reconcileStaleAnalysisRuns(user.id);
 
   // Reserve the credit atomically BEFORE calling Claude — this is what
   // makes concurrent requests safe (two simultaneous clicks can't both

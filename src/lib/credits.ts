@@ -78,6 +78,29 @@ export async function refundCredit(
 }
 
 /**
+ * Safety net for a credit "stuck" mid-analysis — e.g. the serverless
+ * function behind Run Analysis was killed by a platform timeout before
+ * its own refundCredit() call could run. Refunds any of this user's
+ * analysis-run reservations still pending after the stale window
+ * (10 minutes server-side default) and returns how many credits were
+ * restored (0 if none were stale). Never throws — a failure here should
+ * never block whatever the caller was actually trying to do.
+ */
+export async function reconcileStaleAnalysisRuns(userId: string): Promise<number> {
+  const db = getServiceRoleClient();
+  if (!db) return 0;
+
+  const { data, error } = await db.rpc("reconcile_stale_analysis_runs", {
+    p_user_id: userId,
+  });
+  if (error) {
+    console.error("[credits] reconcileStaleAnalysisRuns failed:", error.message);
+    return 0;
+  }
+  return (data as number | null) ?? 0;
+}
+
+/**
  * Grants credits — used for Stripe purchase fulfillment (pass the Stripe
  * event id for idempotency) and for manually adding credits by hand.
  */

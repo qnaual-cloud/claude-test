@@ -150,12 +150,16 @@ on conflict (domain) do nothing;
 -- never invoked twice for the same signup under normal operation.
 --
 -- The credit_transactions insert is the atomic gate, not the balance
--- update: the unique index on (user_id) where reason = 'signup_bonus'
--- guarantees at most one insert ever succeeds per user, even under a
--- genuine concurrent double-call. Only the call whose insert actually
--- succeeds goes on to update the balance — a concurrent duplicate's
--- insert is silently skipped (on conflict do nothing) and returns
--- immediately without ever touching credits_balance.
+-- update — and it only inserts a row when BOTH of these hold: a
+-- profiles row actually exists for this user (the "from profiles
+-- where id = p_user_id" source below, rather than a blind values()
+-- insert) AND no signup_bonus row has been recorded for them yet (the
+-- unique index on (user_id) where reason = 'signup_bonus'). Either
+-- condition failing means zero rows inserted — no profile, no insert;
+-- already granted, no insert; two concurrent callers, only one insert.
+-- The balance update runs only when that insert actually added a row,
+-- which is only possible when a matching profiles row exists — so it
+-- can never no-op, and a losing concurrent duplicate never reaches it.
 create or replace function grant_signup_bonus(p_user_id uuid, p_email text)
 returns void
 language plpgsql
@@ -177,12 +181,14 @@ begin
   end if;
 
   insert into credit_transactions (user_id, amount, reason)
-  values (p_user_id, 5, 'signup_bonus')
+  select p_user_id, 5, 'signup_bonus'
+  from profiles
+  where id = p_user_id
   on conflict do nothing;
 
   get diagnostics v_inserted = row_count;
   if v_inserted = 0 then
-    return; -- lost the race (or already granted) — do not touch the balance
+    return; -- no profile row, already granted, or lost the race — do not touch the balance
   end if;
 
   update profiles

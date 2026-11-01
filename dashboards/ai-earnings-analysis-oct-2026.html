@@ -1,0 +1,212 @@
+<title>AI Earnings Analysis</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: fixed 1920x1080 stage scaled to fit. Metric rows x company columns on the left, two charts on the right, conclusions strip along the bottom. */
+:root{
+  color-scheme:dark;
+  --bg:#12141C; --card:#1A1D26; --card2:#20242F; --line:#2A2F3D;
+  --fg:#E8ECF4; --muted:#8C94A8; --dim:#5D6578;
+  --glow:#3B82F6;
+  --msft:#38BDF8; --amzn:#F59E0B; --googl:#A78BFA;
+  --up:#22C55E; --down:#EF4444; --warn:#FBBF24;
+  --sans:"Inter","SF Pro Display",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px;
+  box-sizing:border-box;display:flex;align-items:center;justify-content:center;overflow-x:hidden}
+#fit{width:100%;max-width:calc((100vh - 32px) * 16 / 9);aspect-ratio:16/9;position:relative;max-height:calc(100vh - 32px)}
+#stage{position:absolute;top:0;left:0;width:1920px;height:1080px;transform-origin:0 0;box-sizing:border-box;padding:30px 36px 22px;
+  background:radial-gradient(1200px 500px at 15% -10%,rgba(59,130,246,.14),transparent 60%),radial-gradient(900px 500px at 100% 110%,rgba(167,139,250,.10),transparent 60%),var(--bg);
+  border:1px solid rgba(59,130,246,.45);border-radius:18px;box-shadow:0 0 40px rgba(59,130,246,.18),inset 0 0 0 1px rgba(255,255,255,.02);
+  display:grid;grid-template-rows:auto 1fr auto auto;gap:16px;overflow:hidden;font-variant-numeric:tabular-nums}
+
+/* header */
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+h1{margin:0;font-size:46px;font-weight:800;letter-spacing:.06em;line-height:1;
+  background:linear-gradient(90deg,#fff 0%,#9CC3FF 60%,var(--glow) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{margin-top:8px;font-size:20px;color:var(--muted);font-weight:500}
+.sub b{color:var(--fg);font-weight:600}
+.tags{display:flex;gap:10px;align-items:center}
+.tag{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:8px;border:1px solid var(--line);color:var(--muted);background:var(--card)}
+.tag.live{border-color:rgba(59,130,246,.6);color:#9CC3FF;box-shadow:0 0 14px rgba(59,130,246,.25)}
+
+/* main */
+main{display:grid;grid-template-columns:1fr 470px;gap:16px;min-height:0}
+.matrix{display:grid;grid-template-columns:170px repeat(3,1fr);grid-template-rows:84px repeat(7,1fr);gap:8px;min-height:0}
+.co{border-radius:12px;padding:12px 16px;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.01)),var(--card);border:1px solid var(--line);border-top:3px solid var(--c);display:flex;flex-direction:column;justify-content:center;gap:4px}
+.co .t{display:flex;align-items:baseline;gap:10px}
+.co .tk{font:700 26px var(--mono);color:var(--c)}
+.co .nm{font-size:17px;font-weight:600}
+.co .per{font-size:13px;color:var(--muted)}
+.lab{display:flex;flex-direction:column;justify-content:center;padding-left:4px}
+.lab .k{font-size:15px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--fg)}
+.lab .u{font-size:12px;color:var(--dim);margin-top:3px}
+.cell{border-radius:10px;background:var(--card);border:1px solid var(--line);padding:8px 16px;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;position:relative}
+.big{font:700 34px var(--mono);line-height:1.05;letter-spacing:-.01em}
+.mid{font:700 26px var(--mono);line-height:1.1}
+.note{font-size:13px;color:var(--muted);line-height:1.3}
+.row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.chg{font:700 18px var(--mono)}
+.up{color:var(--up)} .down{color:var(--down)} .warn{color:var(--warn)}
+.pill{font:700 12px var(--sans);letter-spacing:.08em;padding:4px 9px;border-radius:999px;text-transform:uppercase}
+.pill.beat{background:rgba(34,197,94,.15);color:var(--up);border:1px solid rgba(34,197,94,.4)}
+.pill.miss{background:rgba(239,68,68,.14);color:var(--down);border:1px solid rgba(239,68,68,.4)}
+.pill.mixed{background:rgba(251,191,36,.12);color:var(--warn);border:1px solid rgba(251,191,36,.4)}
+.best{box-shadow:0 0 0 1px var(--c) inset,0 0 18px color-mix(in srgb,var(--c) 30%,transparent)}
+.best::after{content:"TOP";position:absolute;top:8px;right:10px;font:700 11px var(--mono);letter-spacing:.1em;color:var(--c)}
+.outlook{font-size:14px;line-height:1.35;color:var(--fg)}
+.outlook .r{color:#FCA5A5}
+.outlook b{font-family:var(--mono);font-weight:700}
+
+/* charts */
+.side{display:grid;grid-template-rows:1fr 1fr;gap:16px;min-height:0}
+.panel{border-radius:14px;background:linear-gradient(160deg,rgba(59,130,246,.08),rgba(255,255,255,.01)),var(--card);border:1px solid rgba(59,130,246,.35);padding:16px 18px 10px;display:flex;flex-direction:column;min-height:0}
+.panel h3{margin:0;font-size:15px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.panel .ps{font-size:12px;color:var(--muted);margin-top:3px}
+.panel .cv{flex:1;position:relative;min-height:0;margin-top:6px}
+.panel .tot{font:700 14px var(--mono);color:var(--muted);text-align:right}
+.panel .tot b{color:var(--fg)}
+
+/* conclusions */
+.concl{display:grid;grid-template-columns:repeat(4,1fr) 1.35fr;gap:12px}
+.cc{border-radius:12px;background:var(--card2);border:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.cc .h{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.cc .v{font-size:22px;font-weight:800;line-height:1.15}
+.cc .d{font-size:14px;color:var(--muted);line-height:1.35}
+.cc .d b{color:var(--fg);font-family:var(--mono)}
+.take{background:linear-gradient(135deg,rgba(59,130,246,.22),rgba(167,139,250,.10)),var(--card2);border-color:rgba(59,130,246,.55);box-shadow:0 0 22px rgba(59,130,246,.15)}
+.take .h{color:#9CC3FF}
+.take .d{color:var(--fg);font-size:15px}
+
+footer{display:flex;justify-content:space-between;gap:20px;font-size:11.5px;color:var(--dim);line-height:1.35}
+footer span{max-width:72%}
+</style>
+
+<div id="fit"><div id="stage">
+  <header>
+    <div>
+      <h1>AI EARNINGS ANALYSIS</h1>
+      <div class="sub"><b>Microsoft vs Amazon vs Alphabet</b> | October 2026 Earnings Case Study</div>
+    </div>
+    <div class="tags">
+      <span class="tag">Quarter: Jul–Sep 2026</span>
+      <span class="tag">Reported Oct 28–29, 2026</span>
+      <span class="tag live">Post-earnings</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="matrix" aria-label="Company comparison">
+      <div></div>
+      <div class="co" style="--c:var(--msft)"><div class="t"><span class="tk">MSFT</span><span class="nm">Microsoft</span></div><div class="per">Fiscal Q1 FY27 · ended Sep 30, 2026 · reported Oct 28</div></div>
+      <div class="co" style="--c:var(--amzn)"><div class="t"><span class="tk">AMZN</span><span class="nm">Amazon</span></div><div class="per">Q3 2026 · ended Sep 30, 2026 · reported Oct 29</div></div>
+      <div class="co" style="--c:var(--googl)"><div class="t"><span class="tk">GOOGL</span><span class="nm">Alphabet</span></div><div class="per">Q3 2026 · ended Sep 30, 2026 · reported Oct 28</div></div>
+
+      <!-- 1 revenue -->
+      <div class="lab"><span class="k">Revenue</span><span class="u">Actual · YoY growth</span></div>
+      <div class="cell"><div class="row"><span class="big">$92.3B</span><span class="chg up">▲ 19%</span></div></div>
+      <div class="cell"><div class="row"><span class="big">$201.9B</span><span class="chg up">▲ 12%</span></div><span class="note">~16% excl. Prime Day timing shift</span></div>
+      <div class="cell best" style="--c:var(--googl)"><div class="row"><span class="big">$127.6B</span><span class="chg up">▲ 25%</span></div></div>
+
+      <!-- 2 EPS -->
+      <div class="lab"><span class="k">EPS</span><span class="u">Actual vs consensus</span></div>
+      <div class="cell best" style="--c:var(--msft)"><div class="row"><span class="big">$4.89</span><span class="pill beat">▲ Beat</span></div><span class="note">vs ~$4.73 est. · non-GAAP (GAAP $4.92)</span></div>
+      <div class="cell"><div class="row"><span class="big">$1.89</span><span class="pill miss">▼ Miss</span></div><span class="note">vs ~$1.96–1.97 est. · diluted GAAP</span></div>
+      <div class="cell"><div class="row"><span class="big">$2.12</span><span class="pill miss">▼ Miss</span></div><span class="note">vs ~$2.96–3.02 est. · $8.2B other expense</span></div>
+
+      <!-- 3 cloud -->
+      <div class="lab"><span class="k">Cloud growth</span><span class="u">YoY, segment</span></div>
+      <div class="cell"><div class="row"><span class="mid" style="color:var(--msft)">Azure +48%</span></div><span class="note">Guided 44–45% · Microsoft Cloud $63.9B</span></div>
+      <div class="cell"><div class="row"><span class="mid" style="color:var(--amzn)">AWS +39%</span></div><span class="note">$46.0B · fastest in nearly 5 years</span></div>
+      <div class="cell best" style="--c:var(--googl)"><div class="row"><span class="mid" style="color:var(--googl)">Cloud +103%</span></div><span class="note">$30.7B · segment margin 36%</span></div>
+
+      <!-- 4 capex -->
+      <div class="lab"><span class="k">AI investment</span><span class="u">Capex in quarter</span></div>
+      <div class="cell"><span class="mid">$45.2B</span><span class="note">Incl. finance leases</span></div>
+      <div class="cell"><span class="mid">$77.3B</span><span class="note">Purchases of property &amp; equipment</span></div>
+      <div class="cell"><span class="mid">$51.4B</span><span class="note">Purchases of property &amp; equipment</span></div>
+
+      <!-- 5 margin -->
+      <div class="lab"><span class="k">Operating margin</span><span class="u">Actual, quarter</span></div>
+      <div class="cell best" style="--c:var(--msft)"><span class="mid">~49.7%</span><span class="note">Calc.: $45.9B op. income ÷ $92.3B</span></div>
+      <div class="cell"><span class="mid">13.9%</span><span class="note">Record high · AWS margin 38.7%</span></div>
+      <div class="cell"><span class="mid">31.8%</span><span class="note">Op. income ▲ 30% YoY</span></div>
+
+      <!-- 6 reaction -->
+      <div class="lab"><span class="k">Market reaction</span><span class="u">Share price after report</span></div>
+      <div class="cell"><div class="row"><span class="mid warn">Mixed</span><span class="pill mixed">+2.6% / −1%</span></div><span class="note">Oct 29 intraday · reports conflict · close N/A</span></div>
+      <div class="cell"><div class="row"><span class="mid down">▼ ~7%</span></div><span class="note">Oct 29 after-hours / Oct 30 pre-market · close N/A</span></div>
+      <div class="cell"><div class="row"><span class="mid down">▼ 10–12%</span></div><span class="note">Oct 29 intraday · close N/A</span></div>
+
+      <!-- 7 outlook -->
+      <div class="lab"><span class="k">Outlook &amp; risk</span><span class="u">Guidance · key risk</span></div>
+      <div class="cell outlook"><div>FQ2 revenue <b>$96.0–97.1B</b> · FQ2 capex <b>&gt;$50B</b></div><span class="r">Risk: delayed third-party data-center capacity</span></div>
+      <div class="cell outlook"><div>Q4 sales <b>$240–247B</b> (+12–16%) · 2026 capex <b>~$220B</b></div><span class="r">Risk: TTM free cash flow <b>−$42.4B</b></span></div>
+      <div class="cell outlook"><div>No formal guidance · 2026 capex <b>$195–205B</b> maintained</div><span class="r">Risk: Q3 free cash flow <b>−$9.1B</b></span></div>
+    </section>
+
+    <aside class="side">
+      <div class="panel">
+        <h3>Cloud growth, YoY</h3><div class="ps">Azure vs AWS vs Google Cloud · Jul–Sep 2026</div>
+        <div class="cv"><canvas id="cloud" aria-label="Cloud growth: Azure 48%, AWS 39%, Google Cloud 103%"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>AI capex in one quarter</h3><div class="ps">Capital expenditure, $B · Jul–Sep 2026</div>
+        <div class="cv"><canvas id="capex" aria-label="Capex: Microsoft 45.2, Amazon 77.3, Alphabet 51.4 billion dollars"></canvas></div>
+        <div class="tot">Combined: <b>$173.9B</b></div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="concl" aria-label="Research conclusions">
+    <div class="cc"><span class="h">Strongest financials</span><span class="v" style="color:var(--msft)">Microsoft</span><span class="d">Only EPS beat. <b>19%</b> growth at a ~<b>50%</b> margin.</span></div>
+    <div class="cc"><span class="h">Strongest cloud &amp; AI</span><span class="v" style="color:var(--googl)">Alphabet</span><span class="d">Google Cloud <b>+103%</b>, ahead of Azure <b>+48%</b> and AWS <b>+39%</b>.</span></div>
+    <div class="cc"><span class="h">Key risk</span><span class="v" style="color:#FCA5A5">Cash burn</span><span class="d"><b>$173.9B</b> capex in one quarter. Amazon and Alphabet free cash flow turned negative.</span></div>
+    <div class="cc"><span class="h">Vs expectations</span><span class="v" style="color:var(--warn)">1 beat · 2 misses</span><span class="d">Azure beat its own guide. Alphabet fell despite <b>+103%</b> cloud: EPS missed by ~<b>$0.89</b>.</span></div>
+    <div class="cc take"><span class="h">Research takeaway</span><span class="d">Write down expectations before results, then compare each reported figure with that estimate, not only with last year. The gap between expected and reported explains the share-price move better than growth alone.</span></div>
+  </section>
+
+  <footer>
+    <span>Sources: Amazon and Alphabet Q3 2026 earnings releases (investor relations). Microsoft FY27 Q1 figures, consensus estimates and share moves from financial-media coverage of the Oct 28–29, 2026 reports; Microsoft operating margin is calculated, not reported. Closing prices unverified (N/A). Expectations = analyst consensus and company guidance.</span>
+    <span>Historical case study · educational, not investment advice</span>
+  </footer>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function(){
+  var fit=document.getElementById('fit'),stage=document.getElementById('stage');
+  function size(){var s=fit.clientWidth/1920;stage.style.transform='scale('+s+')';}
+  window.addEventListener('resize',size);size();
+
+  if(!window.Chart) return;
+  var css=getComputedStyle(document.documentElement);
+  function v(n){return css.getPropertyValue(n).trim();}
+  var cols=[v('--msft'),v('--amzn'),v('--googl')];
+  Chart.defaults.color=v('--muted');
+  Chart.defaults.font.family=v('--sans');
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var labelPlugin={id:'vals',afterDatasetsDraw:function(c){
+    var ctx=c.ctx,ds=c.data.datasets[0],meta=c.getDatasetMeta(0),suf=c.options.plugins.vals.suffix,pre=c.options.plugins.vals.prefix;
+    ctx.save();ctx.font='700 20px '+v('--mono');ctx.fillStyle=v('--fg');ctx.textBaseline='middle';
+    meta.data.forEach(function(b,i){ctx.fillText(pre+ds.data[i]+suf,b.x+10,b.y);});ctx.restore();}};
+
+  function bar(id,labels,data,max,pre,suf){
+    new Chart(document.getElementById(id),{type:'bar',
+      data:{labels:labels,datasets:[{data:data,backgroundColor:cols.map(function(c){return c+'CC';}),borderColor:cols,borderWidth:1.5,borderRadius:6,barPercentage:.7}]},
+      options:{indexAxis:'y',maintainAspectRatio:false,animation:reduce?false:{duration:900},
+        layout:{padding:{right:10}},
+        plugins:{legend:{display:false},tooltip:{enabled:true},vals:{prefix:pre,suffix:suf}},
+        scales:{x:{min:0,max:max,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12},callback:function(t){return pre+t+suf;}},border:{display:false}},
+                y:{grid:{display:false},ticks:{color:v('--fg'),font:{size:15,weight:'600'}},border:{display:false}}}},
+      plugins:[labelPlugin]});
+  }
+  bar('cloud',['Azure','AWS','Google Cloud'],[48,39,103],125,'','%');
+  bar('capex',['Microsoft','Amazon','Alphabet'],[45.2,77.3,51.4],100,'$','B');
+})();
+</script>

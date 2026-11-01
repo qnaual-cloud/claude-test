@@ -1,0 +1,490 @@
+<title>AI Earnings Research Dashboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: scrolling research terminal. Sticky control bar, then summary → explorer → expectations → AI spend → cloud → mix → table → outlook → conclusions. */
+:root{
+  color-scheme:dark;
+  --bg:#12141C; --card:#1A1D26; --card2:#20242F; --line:#2A2F3D; --line2:#353B4C;
+  --fg:#E8ECF4; --muted:#8C94A8; --dim:#5D6578;
+  --glow:#3B82F6; --glow-soft:rgba(59,130,246,.35);
+  --msft:#38BDF8; --amzn:#F59E0B; --googl:#A78BFA;
+  --up:#22C55E; --down:#EF4444; --warn:#FBBF24; --risk:#FCA5A5;
+  --sans:"Inter","SF Pro Display",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5;margin:0;font-variant-numeric:tabular-nums;
+  background-image:radial-gradient(1100px 520px at 10% -5%,rgba(59,130,246,.13),transparent 60%),radial-gradient(900px 600px at 100% 30%,rgba(167,139,250,.07),transparent 60%);background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:20;background:var(--bg)}
+.wrap{max-width:1360px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px;display:flex;flex-direction:column;gap:22px}
+
+/* header */
+.hero{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:18px}
+.eyebrow{font:700 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:#9CC3FF}
+h1{margin:6px 0 0;font-size:clamp(30px,4.4vw,52px);font-weight:800;letter-spacing:.05em;line-height:1.02;text-wrap:balance;
+  background:linear-gradient(90deg,#fff 0%,#9CC3FF 60%,var(--glow) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{margin-top:8px;font-size:clamp(15px,1.6vw,19px);color:var(--muted)}
+.sub b{color:var(--fg);font-weight:600}
+.meta{display:flex;flex-wrap:wrap;gap:8px}
+.tag{font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:7px 11px;border-radius:8px;border:1px solid var(--line);color:var(--muted);background:var(--card)}
+.tag.on{border-color:var(--glow-soft);color:#9CC3FF;box-shadow:0 0 14px rgba(59,130,246,.22)}
+
+/* control bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 14px;border-radius:12px;
+  background:rgba(26,29,38,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--glow-soft);box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.bar .lbl{font:700 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{appearance:none;cursor:pointer;font:700 13px var(--mono);letter-spacing:.04em;padding:7px 12px;border-radius:999px;border:1px solid var(--line2);background:var(--card2);color:var(--muted);display:inline-flex;align-items:center;gap:8px;transition:all .15s}
+.chip .dot{width:9px;height:9px;border-radius:50%;background:var(--c);opacity:.35}
+.chip[aria-pressed="true"]{color:var(--fg);border-color:var(--c);box-shadow:0 0 12px color-mix(in srgb,var(--c) 35%,transparent)}
+.chip[aria-pressed="true"] .dot{opacity:1}
+.chip:hover{border-color:var(--c)}
+.chip:focus-visible,.tab:focus-visible,button:focus-visible,th button:focus-visible,summary:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
+.jump{display:flex;flex-wrap:wrap;gap:4px 12px;margin-left:auto}
+.jump a{color:var(--muted);text-decoration:none;font-size:13px;font-weight:600}
+.jump a:hover{color:var(--fg)}
+
+/* sections */
+section{scroll-margin-top:80px}
+.sh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:12px}
+.sh h2{margin:0;font-size:15px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.sh p{margin:3px 0 0;color:var(--muted);font-size:13.5px;max-width:70ch}
+.panel{border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(255,255,255,.008)),var(--card);border:1px solid var(--line);padding:20px}
+.panel.glow{border-color:var(--glow-soft);box-shadow:0 0 28px rgba(59,130,246,.10)}
+.grid{display:grid;gap:16px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))}
+.g6{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}
+.g2>*,.g3>*,.g6>*{min-width:0}
+
+/* company KPI cards */
+.coCard{border-top:3px solid var(--c);display:flex;flex-direction:column;gap:14px;transition:opacity .2s}
+.coCard.off{opacity:.28}
+.coHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tk{font:700 26px var(--mono);color:var(--c);line-height:1}
+.nm{font-weight:700;font-size:17px;margin-top:4px}
+.per{font-size:12.5px;color:var(--muted)}
+.badge{font:700 11px var(--sans);letter-spacing:.09em;padding:5px 10px;border-radius:999px;text-transform:uppercase;white-space:nowrap}
+.beat{background:rgba(34,197,94,.14);color:var(--up);border:1px solid rgba(34,197,94,.4)}
+.miss{background:rgba(239,68,68,.13);color:var(--down);border:1px solid rgba(239,68,68,.4)}
+.mixed{background:rgba(251,191,36,.12);color:var(--warn);border:1px solid rgba(251,191,36,.4)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{border-radius:12px;padding:12px 14px;background:var(--card2);border:1px solid var(--line)}
+.kpi .k{font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font:700 24px var(--mono);margin-top:3px;line-height:1.15}
+.kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
+.up{color:var(--up)} .down{color:var(--down)} .warn{color:var(--warn)}
+
+/* explorer */
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{appearance:none;cursor:pointer;font:600 13px var(--sans);padding:8px 13px;border-radius:9px;border:1px solid var(--line2);background:var(--card2);color:var(--muted)}
+.tab[aria-selected="true"]{background:rgba(59,130,246,.18);border-color:var(--glow);color:var(--fg);box-shadow:0 0 14px rgba(59,130,246,.25)}
+.explorer{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;margin-top:16px}
+@media (max-width:860px){.explorer{grid-template-columns:1fr}}
+.cv{position:relative;height:320px}
+.cv.sm{height:260px}
+.insight{border-radius:12px;background:var(--card2);border:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:10px}
+.insight .big{font:700 30px var(--mono);line-height:1.1}
+.insight .lead{font-weight:700;font-size:16px}
+.insight p{margin:0;color:var(--muted);font-size:14px}
+.lesson{font-size:13px;border-left:3px solid var(--glow);padding:6px 0 6px 12px;color:#C9D7F2;background:rgba(59,130,246,.06);border-radius:0 8px 8px 0}
+
+/* surprise chips */
+.surp{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;margin-top:14px}
+.sp{border-radius:12px;padding:12px 14px;background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--c)}
+.sp .v{font:700 22px var(--mono)}
+.sp .s{font-size:12px;color:var(--muted)}
+
+/* reaction strip */
+.rx{display:flex;flex-direction:column;gap:18px;margin-top:6px}
+.rxRow{display:grid;grid-template-columns:64px 1fr 108px;gap:12px;align-items:center}
+.rxRow .lb2{font:700 14px var(--mono);text-align:right;white-space:nowrap}
+.rxRow .t{font:700 15px var(--mono);color:var(--c)}
+.track{position:relative;height:34px;border-radius:8px;background:repeating-linear-gradient(90deg,transparent 0 calc(100%/18 - 1px),rgba(255,255,255,.05) calc(100%/18 - 1px) calc(100%/18))}
+.zero{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--line2)}
+.rng{position:absolute;top:7px;height:20px;border-radius:6px}
+.axis{display:grid;grid-template-columns:64px 1fr 108px;gap:12px;font:500 11px var(--mono);color:var(--dim)}
+.axis .ticks{display:flex;justify-content:space-between}
+.rxNote{font-size:12px;color:var(--muted)}
+
+/* table */
+.tw{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;min-width:820px}
+th,td{padding:12px 14px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{background:var(--card2);position:sticky;top:0}
+th button{appearance:none;background:none;border:0;color:var(--muted);font:700 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:0;display:inline-flex;gap:5px;align-items:center}
+th button[data-active="true"]{color:var(--fg)}
+td{font-family:var(--mono);font-size:14.5px}
+td .co{font-family:var(--sans);font-weight:700}
+tbody tr:hover td{background:rgba(59,130,246,.06)}
+tr.top td.hl{color:var(--up)}
+
+/* outlook */
+details{border-radius:14px;background:var(--card);border:1px solid var(--line);border-top:3px solid var(--c);padding:0;overflow:hidden}
+details.off{opacity:.28}
+summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary .tk{font-size:20px}
+summary .chev{transition:transform .2s;color:var(--muted)}
+details[open] summary .chev{transform:rotate(180deg)}
+.dbody{padding:0 18px 18px;display:flex;flex-direction:column;gap:12px}
+.dbody h4{margin:0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.dbody ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:14px}
+.dbody li b{font-family:var(--mono)}
+.risk li{color:var(--risk)}
+
+/* conclusions */
+.cc{border-radius:14px;padding:16px 18px;background:var(--card2);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.cc .h{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.cc .v{font-size:22px;font-weight:800;line-height:1.15}
+.cc .d{font-size:14px;color:var(--muted)}
+.cc .d b{color:var(--fg);font-family:var(--mono)}
+.take{border-color:var(--glow-soft);background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(167,139,250,.08)),var(--card2);box-shadow:0 0 26px rgba(59,130,246,.14)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;margin-top:8px}
+.step{border-radius:10px;padding:12px;background:rgba(18,20,28,.55);border:1px solid var(--line)}
+.step .n{font:700 12px var(--mono);color:#9CC3FF}
+.step .t{font-weight:700;margin-top:2px}
+.step .x{font-size:13px;color:var(--muted)}
+
+footer{font-size:12px;color:var(--dim);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:16px}
+footer a{color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Investment research case study · post-earnings</div>
+      <h1>AI EARNINGS ANALYSIS</h1>
+      <div class="sub"><b>Microsoft vs Amazon vs Alphabet</b> | October 2026 Earnings Case Study</div>
+    </div>
+    <div class="meta">
+      <span class="tag">Quarter: Jul–Sep 2026</span>
+      <span class="tag">Reported Oct 28–29, 2026</span>
+      <span class="tag on">Pre vs post earnings</span>
+    </div>
+  </header>
+
+  <nav class="bar" aria-label="Dashboard controls">
+    <span class="lbl">Compare</span>
+    <div class="chips" id="chips"></div>
+    <div class="jump">
+      <a href="#scorecards">Scorecards</a><a href="#explorer">Explorer</a><a href="#expect">Expectations</a><a href="#capex">AI spend</a><a href="#cloud">Cloud</a><a href="#table">Table</a><a href="#outlook">Outlook</a><a href="#conclusions">Conclusions</a>
+    </div>
+  </nav>
+
+  <!-- 1. scorecards -->
+  <section id="scorecards">
+    <div class="sh"><div><h2>Company scorecards</h2><p>The six numbers an investor checks first after a report. Click a company in the bar above to focus the whole dashboard.</p></div></div>
+    <div class="grid g3" id="cards"></div>
+  </section>
+
+  <!-- 2. explorer -->
+  <section id="explorer" class="panel glow">
+    <div class="sh"><div><h2>Metric explorer</h2><p>Pick a metric. The chart and the reading notes update together.</p></div></div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="explorer">
+      <div class="cv"><canvas id="exChart" role="img" aria-label="Selected metric by company"></canvas></div>
+      <div class="insight" id="exInsight"></div>
+    </div>
+  </section>
+
+  <!-- 3. expectations -->
+  <section id="expect" class="grid g2">
+    <div class="panel">
+      <div class="sh"><div><h2>EPS: expected vs reported</h2><p>Analyst consensus before the report against the reported figure.</p></div></div>
+      <div class="cv sm"><canvas id="epsChart" role="img" aria-label="EPS consensus versus actual"></canvas></div>
+      <div class="surp" id="surp"></div>
+    </div>
+    <div class="panel">
+      <div class="sh"><div><h2>Market reaction</h2><p>Reported share-price moves in the first session after results. Closing prices are not verified.</p></div></div>
+      <div class="rx" id="rx"></div>
+      <div class="axis" style="margin-top:8px"><div></div><div class="ticks"><span>−14%</span><span>−8%</span><span>−2%</span><span>+4%</span></div><div></div></div>
+      <div class="lesson" style="margin-top:16px">Microsoft beat its own Azure guide (48% vs 44–45%) and its EPS consensus. Alphabet grew cloud fastest but missed EPS by about $0.89, and its shares fell most. The market reacted to the gap against expectations, not to growth alone.</div>
+    </div>
+  </section>
+
+  <!-- 4. capex -->
+  <section id="capex">
+    <div class="sh"><div><h2>AI investment &amp; cash flow</h2><p>Capital expenditure is where AI spending shows up. Free cash flow shows what it costs.</p></div></div>
+    <div class="grid g6" id="capexTiles"></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="panel">
+        <div class="sh"><div><h2>Alphabet capex by quarter</h2><p>Purchases of property &amp; equipment and free cash flow, $B</p></div></div>
+        <div class="cv sm"><canvas id="gCapex" role="img" aria-label="Alphabet quarterly capex and free cash flow"></canvas></div>
+        <div class="note">Capex more than doubled from $24.0B (Q3 2025) to $51.4B (Q3 2026). Quarterly free cash flow turned negative in Q2 and Q3 2026.</div>
+      </div>
+      <div class="panel">
+        <div class="sh"><div><h2>Amazon free cash flow, trailing 12 months</h2><p>$B · operating cash flow less net capex</p></div></div>
+        <div class="cv sm"><canvas id="aFcf" role="img" aria-label="Amazon trailing twelve month free cash flow"></canvas></div>
+        <div class="note">Operating cash flow rose 29% to $168.3B, but TTM net capex of $210.7B pushed free cash flow to −$42.4B.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. cloud -->
+  <section id="cloud" class="grid g2">
+    <div class="panel">
+      <div class="sh"><div><h2>AWS momentum</h2><p>Segment sales growth (ex-FX) and operating margin by quarter</p></div></div>
+      <div class="cv sm"><canvas id="awsChart" role="img" aria-label="AWS growth and margin trend"></canvas></div>
+      <div class="note">Growth accelerated for five straight quarters, from 17% to 39%.</div>
+    </div>
+    <div class="panel">
+      <div class="sh"><div><h2>Revenue mix</h2><p>Q3 2026 revenue by business line, $B</p></div>
+        <div class="tabs" role="tablist" id="mixTabs"></div></div>
+      <div class="cv sm"><canvas id="mixChart" role="img" aria-label="Revenue mix by segment"></canvas></div>
+      <div class="note" id="mixNote"></div>
+    </div>
+  </section>
+
+  <!-- 6. table -->
+  <section id="table" class="panel">
+    <div class="sh"><div><h2>Side-by-side comparison</h2><p>Click any column header to rank the companies by that metric.</p></div></div>
+    <div class="tw"><table id="tbl"><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
+    <p class="note" style="margin:10px 0 0">Capex intensity = quarterly capex ÷ quarterly revenue (calculated). Microsoft operating margin is calculated from reported operating income ($45.9B) and revenue.</p>
+  </section>
+
+  <!-- 7. outlook -->
+  <section id="outlook">
+    <div class="sh"><div><h2>Management outlook &amp; risks</h2><p>Open a company for its guidance and the risks to track into the next report.</p></div></div>
+    <div class="grid g3" id="outlookCards"></div>
+  </section>
+
+  <!-- 8. conclusions -->
+  <section id="conclusions">
+    <div class="sh"><div><h2>Research conclusions</h2></div></div>
+    <div class="grid g3">
+      <div class="cc"><span class="h">Strongest reported performance</span><span class="v" style="color:var(--msft)">Microsoft</span><span class="d">Only EPS beat of the three. <b>19%</b> revenue growth at a ~<b>50%</b> operating margin.</span></div>
+      <div class="cc"><span class="h">Strongest cloud &amp; AI growth</span><span class="v" style="color:var(--googl)">Alphabet</span><span class="d">Google Cloud <b>+103%</b> to <b>$30.7B</b>, ahead of Azure <b>+48%</b> and AWS <b>+39%</b>.</span></div>
+      <div class="cc"><span class="h">Key investment risk</span><span class="v" style="color:var(--risk)">Cash burn</span><span class="d"><b>$173.9B</b> combined capex in one quarter. Amazon TTM free cash flow <b>−$42.4B</b>; Alphabet Q3 free cash flow <b>−$9.1B</b>.</span></div>
+      <div class="cc"><span class="h">Vs expectations: EPS</span><span class="v" style="color:var(--warn)">1 beat · 2 misses</span><span class="d">Microsoft beat. Amazon missed by ~<b>4%</b>; Alphabet by ~<b>30%</b>, partly from an <b>$8.2B</b> other expense.</span></div>
+      <div class="cc"><span class="h">Vs expectations: cloud</span><span class="v" style="color:var(--msft)">Azure above guide</span><span class="d">Azure <b>48%</b> vs <b>44–45%</b> guided. AWS <b>39%</b> was below the 40%+ some investors hoped for.</span></div>
+      <div class="cc"><span class="h">What the market rewarded</span><span class="v">Profitable growth</span><span class="d">The stock that matched growth with margin held up. Fast growth funded by negative cash flow was sold.</span></div>
+    </div>
+    <div class="cc take" style="margin-top:16px">
+      <span class="h" style="color:#9CC3FF">Educational takeaway · a repeatable process</span>
+      <span class="d" style="color:var(--fg);font-size:15px">Writing expectations down before results, then comparing each reported figure with that estimate, shows why a stock moves. Growth alone does not explain it: Alphabet grew cloud 103% and still fell the most.</span>
+      <div class="steps">
+        <div class="step"><div class="n">Step 1 · Before</div><div class="t">Record expectations</div><div class="x">Consensus EPS, revenue and the company's own guide.</div></div>
+        <div class="step"><div class="n">Step 2 · Results</div><div class="t">Pull official figures</div><div class="x">Use the investor-relations release, not headlines.</div></div>
+        <div class="step"><div class="n">Step 3 · Compare</div><div class="t">Measure the gap</div><div class="x">Beat or miss, by how much, and why.</div></div>
+        <div class="step"><div class="n">Step 4 · Update</div><div class="t">Revise your thesis</div><div class="x">Note new risks and what to watch next quarter.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div><b>Reporting periods:</b> Microsoft fiscal Q1 FY2027 and Amazon / Alphabet Q3 2026 all cover July 1 – September 30, 2026. Microsoft and Alphabet reported on October 28, 2026; Amazon on October 29, 2026.</div>
+    <div><b>Sources:</b> Amazon and Alphabet Q3 2026 earnings releases (investor relations). Microsoft FY27 Q1 figures, consensus estimates and share-price moves are from financial-media coverage of the reports, including
+      <a href="https://vestedfinance.com/blog/microsoft-q1-fy27-results-revenue-jumps-19-to-92-3-billion-as-azure-grows-48/" target="_blank" rel="noopener">Vested Finance</a>,
+      <a href="https://www.datastudios.org/post/microsoft-q1-fy27-results-azure-48-percent-33-2-billion-capex-45-2-billion" target="_blank" rel="noopener">DataStudios</a>,
+      <a href="https://www.investing.com/news/transcripts/earnings-call-transcript-alphabet-q3-2026-profit-miss-sparks-10-afterhours-drop-93CH-4981037" target="_blank" rel="noopener">Investing.com</a>,
+      <a href="https://www.geekwire.com/2026/aws-growth-hits-39-its-fastest-in-nearly-five-years-as-amazon-misses-on-earnings/" target="_blank" rel="noopener">GeekWire</a>,
+      <a href="https://www.cnbc.com/2026/10/30/amazon-earnings-analysts-stock.html" target="_blank" rel="noopener">CNBC</a> and
+      <a href="https://finance.yahoo.com/markets/stocks/articles/stock-market-today-oct-29-134623155.html" target="_blank" rel="noopener">Yahoo Finance</a>.</div>
+    <div>Consensus estimates vary by source and are shown as approximate. Closing prices could not be verified and are marked N/A. Historical case study for education only; not investment advice.</div>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function(){
+var css=getComputedStyle(document.documentElement);function tok(n){return css.getPropertyValue(n).trim();}
+var C={MSFT:tok('--msft'),AMZN:tok('--amzn'),GOOGL:tok('--googl')};
+var IDS=['MSFT','AMZN','GOOGL'];
+
+/* All figures from the Jul–Sep 2026 quarter. See footer for sources. */
+var D={
+ MSFT:{name:'Microsoft',period:'Fiscal Q1 FY27 · ended Sep 30, 2026',rep:'Reported Oct 28, 2026',
+   rev:92.3,revG:19,eps:4.89,epsEst:4.73,epsEstTxt:'~$4.73',epsType:'non-GAAP (GAAP $4.92)',
+   cloud:'Azure',cloudG:48,cloudRev:'$33.2B',capex:45.2,capexNote:'Incl. finance leases',margin:49.7,marginNote:'Calculated',
+   rx:{lo:-1,hi:2.6,label:'+2.6% / −1%',kind:'mixed',note:'Oct 29 intraday · reports conflict'},
+   guide:['FQ2 revenue <b>$96.0–97.1B</b>','FQ2 capex expected <b>above $50B</b>','Microsoft Cloud revenue <b>$63.9B</b> in the quarter'],
+   risks:['Delayed third-party data-center capacity held capex below plan','Rising capex ahead (>$50B next quarter)','Operating margin expected to contract over FY27 (management commentary)']},
+ AMZN:{name:'Amazon',period:'Q3 2026 · ended Sep 30, 2026',rep:'Reported Oct 29, 2026',
+   rev:201.9,revG:12,eps:1.89,epsEst:1.96,epsEstTxt:'~$1.96–1.97',epsType:'diluted GAAP',
+   cloud:'AWS',cloudG:39,cloudRev:'$46.0B',capex:77.3,capexNote:'Purchases of P&E',margin:13.9,marginNote:'Record high',
+   rx:{lo:-7,hi:-7,label:'≈ −7%',kind:'miss',note:'Oct 29 after-hours / Oct 30 pre-market'},
+   guide:['Q4 net sales <b>$240–247B</b> (+12–16% YoY)','Q4 operating income <b>$28.5–33.5B</b>','2026 cash capex <b>~$220B</b>','AWS growth projected <b>over 40%</b> in 2027 and 2028 (CEO)'],
+   risks:['TTM free cash flow <b>−$42.4B</b>','Memory-chip supply and energy prices named in guidance','Q3 ad growth slowed to 12% ex-FX (Prime Day timing)']},
+ GOOGL:{name:'Alphabet',period:'Q3 2026 · ended Sep 30, 2026',rep:'Reported Oct 28, 2026',
+   rev:127.6,revG:25,eps:2.12,epsEst:3.01,epsEstTxt:'~$2.96–3.02',epsType:'diluted GAAP',
+   cloud:'Google Cloud',cloudG:103,cloudRev:'$30.7B',capex:51.4,capexNote:'Purchases of P&E',margin:31.8,marginNote:'Op. income +30% YoY',
+   rx:{lo:-12,hi:-10,label:'−10% to −12%',kind:'miss',note:'Oct 29 intraday'},
+   guide:['No formal guidance in the earnings release','2026 capex range <b>$195–205B</b> maintained (call)','Capex expected to rise significantly in 2027 (call)','Gemini app at <b>1 billion</b> users; API tokens ~4x YoY'],
+   risks:['Q3 free cash flow <b>−$9.1B</b>','<b>$8.2B</b> other expense (equity-securities losses) cut EPS','Search and YouTube ad revenue below some estimates']}
+};
+D.MSFT.intensity=+(D.MSFT.capex/D.MSFT.rev*100).toFixed(1);
+D.AMZN.intensity=+(D.AMZN.capex/D.AMZN.rev*100).toFixed(1);
+D.GOOGL.intensity=+(D.GOOGL.capex/D.GOOGL.rev*100).toFixed(1);
+IDS.forEach(function(k){var d=D[k];d.surp=+((d.eps-d.epsEst)/d.epsEst*100).toFixed(1);});
+
+var active={MSFT:true,AMZN:true,GOOGL:true};
+function on(){return IDS.filter(function(k){return active[k];});}
+function fmtB(v){return '$'+v.toFixed(1)+'B';}
+
+/* chips */
+var chips=document.getElementById('chips');
+IDS.forEach(function(k){var b=document.createElement('button');b.className='chip';b.style.setProperty('--c',C[k]);b.setAttribute('aria-pressed','true');b.id='chip-'+k;
+ b.innerHTML='<span class="dot"></span>'+k;b.onclick=function(){
+   if(active[k]&&on().length===1)return; active[k]=!active[k];b.setAttribute('aria-pressed',active[k]);refresh();};chips.appendChild(b);});
+
+/* scorecards */
+var cards=document.getElementById('cards');
+IDS.forEach(function(k){var d=D[k];var beat=d.eps>=d.epsEst;var el=document.createElement('div');el.className='panel coCard';el.id='card-'+k;el.style.setProperty('--c',C[k]);
+ el.innerHTML='<div class="coHead"><div><div class="tk">'+k+'</div><div class="nm">'+d.name+'</div><div class="per">'+d.period+' · '+d.rep.replace('Reported ','reported ')+'</div></div><span class="badge '+(beat?'beat':'miss')+'">'+(beat?'▲ EPS beat':'▼ EPS miss')+'</span></div>'+
+ '<div class="kpis">'+
+ '<div class="kpi"><div class="k">Revenue</div><div class="v">'+fmtB(d.rev)+'</div><div class="s up">▲ '+d.revG+'% YoY</div></div>'+
+ '<div class="kpi"><div class="k">EPS</div><div class="v">$'+d.eps.toFixed(2)+'</div><div class="s '+(beat?'up':'down')+'">'+(beat?'▲':'▼')+' vs '+d.epsEstTxt+' est.</div></div>'+
+ '<div class="kpi"><div class="k">'+d.cloud+'</div><div class="v" style="color:var(--c)">+'+d.cloudG+'%</div><div class="s">'+d.cloudRev+' revenue</div></div>'+
+ '<div class="kpi"><div class="k">AI capex</div><div class="v">'+fmtB(d.capex)+'</div><div class="s">'+d.capexNote+'</div></div>'+
+ '<div class="kpi"><div class="k">Op. margin</div><div class="v">'+(k==='MSFT'?'~':'')+d.margin.toFixed(1)+'%</div><div class="s">'+d.marginNote+'</div></div>'+
+ '<div class="kpi"><div class="k">Reaction</div><div class="v '+(d.rx.kind==='mixed'?'warn':'down')+'" style="font-size:19px">'+d.rx.label+'</div><div class="s">'+d.rx.note+'</div></div>'+
+ '</div>';cards.appendChild(el);});
+
+/* chart defaults */
+if(!window.Chart){document.querySelectorAll('canvas').forEach(function(c){var p=document.createElement('div');p.className='note';p.textContent='Chart library could not load. Figures are listed in the table below.';c.replaceWith(p);});}
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(window.Chart){Chart.defaults.color=tok('--muted');Chart.defaults.font.family=tok('--sans');Chart.defaults.font.size=12;Chart.defaults.animation=reduce?false:{duration:700};
+ Chart.defaults.plugins.tooltip.backgroundColor='#0D0F15';Chart.defaults.plugins.tooltip.borderColor=tok('--glow');Chart.defaults.plugins.tooltip.borderWidth=1;Chart.defaults.plugins.tooltip.padding=10;}
+var gridC='rgba(255,255,255,.06)';
+var valLabels={id:'valLabels',afterDatasetsDraw:function(c,a,o){if(!o||!o.fmt)return;var ctx=c.ctx;ctx.save();ctx.font='700 14px '+tok('--mono');ctx.fillStyle=tok('--fg');
+ c.data.datasets.forEach(function(ds,di){if(o.only!=null&&o.only!==di)return;var m=c.getDatasetMeta(di);if(m.hidden)return;m.data.forEach(function(b,i){var v=ds.data[i];if(v==null)return;var t=o.fmt(v);
+  if(c.options.indexAxis==='y'){ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(t,b.x+8,b.y);}else{ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(t,b.x,(v<0?b.base:b.y)-6);}});});ctx.restore();}};
+
+/* explorer */
+var METRICS=[
+ {id:'rev',tab:'Revenue',get:function(d){return d.rev},fmt:function(v){return '$'+v.toFixed(1)+'B'},unit:'$B',
+  lead:function(){return 'Amazon is the largest by revenue';},text:'Scale is not the same as momentum. Amazon reported $201.9B, but grew slowest at 12%, held back by a Prime Day timing shift into Q2.',lesson:'Ask Claude: "Separate reported growth from one-off timing effects in this release."'},
+ {id:'revG',tab:'Revenue growth',get:function(d){return d.revG},fmt:function(v){return v+'%'},unit:'% YoY',
+  lead:function(){return 'Alphabet grew fastest at 25%';},text:'Alphabet posted its 13th straight quarter of double-digit growth. Amazon says growth was about 4 points higher excluding the Prime Day shift.',lesson:'Growth rates make companies of different size comparable.'},
+ {id:'cloudG',tab:'Cloud growth',get:function(d){return d.cloudG},fmt:function(v){return '+'+v+'%'},unit:'% YoY',
+  lead:function(){return 'Google Cloud more than doubled';},text:'Google Cloud +103%, Azure +48% (above its 44–45% guide), AWS +39% (fastest in nearly five years). AWS is still the largest at $46.0B.',lesson:'Compare growth with size: AWS adds more dollars on a bigger base.'},
+ {id:'capex',tab:'AI capex',get:function(d){return d.capex},fmt:function(v){return '$'+v.toFixed(1)+'B'},unit:'$B',
+  lead:function(){return '$173.9B spent in one quarter';},text:'Amazon spent the most ($77.3B). All three expect spending to keep rising: Microsoft above $50B next quarter, Amazon ~$220B for 2026, Alphabet $195–205B.',lesson:'Capex is the clearest measure of how hard each company is betting on AI.'},
+ {id:'intensity',tab:'Capex intensity',get:function(d){return d.intensity},fmt:function(v){return v+'%'},unit:'% of revenue',
+  lead:function(){return 'Microsoft reinvests ~49% of revenue';},text:'Calculated as quarterly capex ÷ revenue. Microsoft funds that level from a ~50% margin; Amazon and Alphabet are spending more than they generate in free cash flow.',lesson:'Intensity shows whether spending is affordable, not only how large it is.'},
+ {id:'margin',tab:'Operating margin',get:function(d){return d.margin},fmt:function(v){return v.toFixed(1)+'%'},unit:'%',
+  lead:function(){return 'Microsoft leads on profitability';},text:'Microsoft ~49.7% (calculated), Alphabet 31.8%, Amazon 13.9%. Amazon\'s margin is a record, driven by AWS at a 38.7% segment margin.',lesson:'Margins differ by business model; compare each with its own history too.'}
+];
+var tabs=document.getElementById('tabs'),cur=METRICS[2],exChart;
+METRICS.forEach(function(m){var b=document.createElement('button');b.className='tab';b.id='tab-'+m.id;b.setAttribute('role','tab');b.setAttribute('aria-selected',m===cur);b.textContent=m.tab;
+ b.onclick=function(){cur=m;tabs.querySelectorAll('.tab').forEach(function(t){t.setAttribute('aria-selected',t===b)});drawExplorer();};tabs.appendChild(b);});
+function drawExplorer(){
+ var ks=on(),vals=ks.map(function(k){return cur.get(D[k])});
+ var ins=document.getElementById('exInsight');var lead=IDS.reduce(function(a,k){return cur.get(D[k])>cur.get(D[a])?k:a},'MSFT');
+ ins.innerHTML='<div class="per" style="text-transform:uppercase;letter-spacing:.1em;font-weight:700;font-size:11px">'+cur.tab+' · '+cur.unit+'</div>'+
+  '<div class="big" style="color:'+C[lead]+'">'+lead+' '+cur.fmt(cur.get(D[lead]))+'</div><div class="lead">'+cur.lead()+'</div><p>'+cur.text+'</p><div class="lesson">'+cur.lesson+'</div>';
+ if(!window.Chart)return;
+ var cfg={labels:ks.map(function(k){return D[k].name}),datasets:[{data:vals,backgroundColor:ks.map(function(k){return C[k]+'BB'}),borderColor:ks.map(function(k){return C[k]}),borderWidth:1.5,borderRadius:8,maxBarThickness:110}]};
+ if(exChart){exChart.data=cfg;exChart.options.plugins.valLabels.fmt=cur.fmt;exChart.options.scales.y.ticks.callback=function(v){return cur.fmt(v)};exChart.update();return;}
+ exChart=new Chart(document.getElementById('exChart'),{type:'bar',data:cfg,plugins:[valLabels],
+  options:{maintainAspectRatio:false,layout:{padding:{top:26}},plugins:{legend:{display:false},valLabels:{fmt:cur.fmt},tooltip:{callbacks:{label:function(c){return ' '+cur.fmt(c.raw)}}}},
+   scales:{y:{beginAtZero:true,grid:{color:gridC},border:{display:false},ticks:{callback:function(v){return cur.fmt(v)}}},x:{grid:{display:false},ticks:{color:tok('--fg'),font:{size:14,weight:'600'}}}}}});
+}
+
+/* EPS */
+var epsChart;
+function drawEps(){
+ var ks=on();var s=document.getElementById('surp');
+ s.innerHTML=IDS.map(function(k){var d=D[k];var b=d.surp>=0;return '<div class="sp" style="--c:'+C[k]+';'+(active[k]?'':'opacity:.28')+'"><div class="s">'+k+' surprise</div><div class="v '+(b?'up':'down')+'">'+(b?'▲ +':'▼ ')+d.surp+'%</div><div class="s">$'+d.eps.toFixed(2)+' vs '+d.epsEstTxt+' · '+d.epsType+'</div></div>'}).join('');
+ if(!window.Chart)return;
+ var data={labels:ks,datasets:[
+  {label:'Consensus (pre-earnings)',data:ks.map(function(k){return D[k].epsEst}),backgroundColor:'rgba(140,148,168,.25)',borderColor:'rgba(140,148,168,.7)',borderWidth:1.5,borderRadius:6,maxBarThickness:56},
+  {label:'Reported',data:ks.map(function(k){return D[k].eps}),backgroundColor:ks.map(function(k){return C[k]+'CC'}),borderColor:ks.map(function(k){return C[k]}),borderWidth:1.5,borderRadius:6,maxBarThickness:56}]};
+ if(epsChart){epsChart.data=data;epsChart.update();return;}
+ epsChart=new Chart(document.getElementById('epsChart'),{type:'bar',data:data,plugins:[valLabels],options:{maintainAspectRatio:false,layout:{padding:{top:24}},
+  plugins:{valLabels:{fmt:function(v){return '$'+v.toFixed(2)}},legend:{position:'bottom',labels:{boxWidth:12,color:tok('--fg')}},tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': $'+c.raw.toFixed(2)}}}},
+  scales:{y:{beginAtZero:true,grid:{color:gridC},border:{display:false},ticks:{callback:function(v){return '$'+v}}},x:{grid:{display:false},ticks:{color:tok('--fg'),font:{weight:'700',family:tok('--mono')}}}}}});
+}
+
+/* reaction strip: axis −14% to +4% */
+function pos(v){return (v+14)/18*100;}
+function drawRx(){
+ document.getElementById('rx').innerHTML=IDS.map(function(k){var r=D[k].rx;var l=pos(Math.min(r.lo,r.hi)),w=Math.max(pos(Math.max(r.lo,r.hi))-l,1.4);
+  var col=r.kind==='mixed'?'var(--warn)':'var(--down)';
+  return '<div style="'+(active[k]?'':'opacity:.28')+'"><div class="rxRow" style="--c:'+C[k]+'"><span class="t">'+k+'</span><div class="track"><div class="zero" style="left:'+pos(0)+'%"></div>'+
+  '<div class="rng" style="left:'+l+'%;width:'+w+'%;background:'+col+';box-shadow:0 0 12px '+col+'"></div></div><span class="lb2" style="color:'+col+'">'+r.label+'</span></div>'+
+  '<div class="axis"><div></div><div class="rxNote">'+r.note+' · close N/A</div><div></div></div></div>';}).join('');
+}
+
+/* capex tiles */
+document.getElementById('capexTiles').innerHTML=[
+ ['Combined capex','$173.9B','Three companies, one quarter','var(--glow)'],
+ ['Amazon','$77.3B','~$220B expected for 2026',C.AMZN],
+ ['Alphabet','$51.4B','$195–205B range for 2026',C.GOOGL],
+ ['Microsoft','$45.2B','>$50B expected next quarter',C.MSFT],
+ ['Amazon TTM FCF','−$42.4B','vs +$14.8B a year earlier','var(--down)'],
+ ['Alphabet Q3 FCF','−$9.1B','TTM still +$19.7B','var(--down)']
+].map(function(t){return '<div class="kpi" style="border-left:3px solid '+t[3]+'"><div class="k">'+t[0]+'</div><div class="v" style="color:'+t[3]+'">'+t[1]+'</div><div class="s">'+t[2]+'</div></div>'}).join('');
+
+if(window.Chart){
+ new Chart(document.getElementById('gCapex'),{data:{labels:['Q3 25','Q4 25','Q1 26','Q2 26','Q3 26'],datasets:[
+  {type:'bar',label:'Capex',data:[24.0,27.9,35.7,44.9,51.4],backgroundColor:C.GOOGL+'AA',borderColor:C.GOOGL,borderWidth:1.5,borderRadius:6,order:2},
+  {type:'line',label:'Free cash flow',data:[null,24.6,10.1,-5.9,-9.1],borderColor:tok('--down'),backgroundColor:tok('--down'),pointRadius:[0,4,4,4,7],tension:.3,order:1}]},
+  options:{maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12,color:tok('--fg')}},tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': $'+c.raw+'B'}}}},
+   scales:{y:{grid:{color:function(c){return c.tick.value===0?'rgba(255,255,255,.3)':gridC}},border:{display:false},ticks:{callback:function(v){return '$'+v+'B'}}},x:{grid:{display:false}}}}});
+ var fcf=[18.2,14.8,11.2,1.2,-7.6,-42.4];
+ new Chart(document.getElementById('aFcf'),{type:'bar',data:{labels:['Q2 25','Q3 25','Q4 25','Q1 26','Q2 26','Q3 26'],datasets:[{label:'TTM free cash flow',data:fcf,
+  backgroundColor:fcf.map(function(v){return v<0?'rgba(239,68,68,.7)':C.AMZN+'AA'}),borderColor:fcf.map(function(v){return v<0?tok('--down'):C.AMZN}),borderWidth:1.5,borderRadius:6}]},
+  plugins:[valLabels],options:{maintainAspectRatio:false,layout:{padding:{top:22}},plugins:{legend:{display:false},valLabels:{fmt:function(v){return (v<0?'−$':'$')+Math.abs(v)+'B'}},tooltip:{callbacks:{label:function(c){return ' $'+c.raw+'B'}}}},
+   scales:{y:{grid:{color:function(c){return c.tick.value===0?'rgba(255,255,255,.3)':gridC}},border:{display:false},ticks:{callback:function(v){return '$'+v+'B'}}},x:{grid:{display:false}}}}});
+ new Chart(document.getElementById('awsChart'),{data:{labels:['Q2 25','Q3 25','Q4 25','Q1 26','Q2 26','Q3 26'],datasets:[
+  {type:'line',label:'Sales growth (ex-FX)',data:[17,20,24,28,37,39],borderColor:C.AMZN,backgroundColor:'rgba(245,158,11,.15)',fill:true,tension:.35,pointRadius:[3,3,3,3,3,7],pointBackgroundColor:C.AMZN},
+  {type:'line',label:'Operating margin',data:[32.9,34.6,35.0,37.7,39.4,38.7],borderColor:tok('--msft'),borderDash:[5,4],tension:.35,pointRadius:3,pointBackgroundColor:tok('--msft')}]},
+  options:{maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12,color:tok('--fg')}},tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+c.raw+'%'}}}},
+   scales:{y:{min:0,max:45,grid:{color:gridC},border:{display:false},ticks:{callback:function(v){return v+'%'}}},x:{grid:{display:false}}}}});
+}
+
+/* revenue mix */
+var MIX={
+ GOOGL:{labels:['Search & other','YouTube ads','Google Network','Subscriptions, platforms & devices','Google Cloud','Other Bets'],data:[63.4,11.2,7.5,14.3,30.7,0.4],hl:4,note:'Google Cloud is now 24% of revenue, up from 15% a year earlier. Excludes $0.2B hedging gains.'},
+ AMZN:{labels:['Online stores','Physical stores','Third-party seller services','Advertising','Subscriptions','AWS','Other'],data:[68.5,5.7,46.5,19.6,14.0,46.0,1.6],hl:5,note:'AWS is 23% of revenue but 63% of operating income ($17.8B of $28.1B).'},
+ MSFT:{labels:[],data:[],note:'Microsoft segment revenue was not verified from the official release, so it is not shown (N/A).'}
+};
+var mixKey='GOOGL',mixChart,mixTabs=document.getElementById('mixTabs');
+['GOOGL','AMZN','MSFT'].forEach(function(k){var b=document.createElement('button');b.className='tab';b.id='mix-'+k;b.setAttribute('role','tab');b.setAttribute('aria-selected',k===mixKey);b.textContent=k;
+ b.onclick=function(){mixKey=k;mixTabs.querySelectorAll('.tab').forEach(function(t){t.setAttribute('aria-selected',t===b)});drawMix();};mixTabs.appendChild(b);});
+function shade(hex,i,n){var a=Math.round(255*(0.25+0.5*(i/(n))));return hex+('0'+a.toString(16)).slice(-2);}
+function drawMix(){var m=MIX[mixKey];document.getElementById('mixNote').textContent=m.note;if(!window.Chart)return;
+ var base=C[mixKey];var colors=m.data.map(function(_,i){return i===m.hl?base:shade(base,i,m.data.length)});
+ var data={labels:m.labels,datasets:[{data:m.data,backgroundColor:colors,borderColor:tok('--card'),borderWidth:2,hoverOffset:8}]};
+ if(mixChart){mixChart.data=data;mixChart.update();return;}
+ mixChart=new Chart(document.getElementById('mixChart'),{type:'doughnut',data:data,options:{maintainAspectRatio:false,cutout:'58%',
+  plugins:{legend:{position:'right',labels:{boxWidth:12,color:tok('--fg'),font:{size:12}}},tooltip:{callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b},0);return ' $'+c.raw+'B ('+(c.raw/t*100).toFixed(0)+'%)'}}}}}});}
+
+/* table */
+var COLS=[
+ {k:'name',t:'Company'},{k:'rev',t:'Revenue',f:function(v){return fmtB(v)}},{k:'revG',t:'Rev. growth',f:function(v){return v+'%'}},
+ {k:'eps',t:'EPS',f:function(v){return '$'+v.toFixed(2)}},{k:'surp',t:'EPS surprise',f:function(v){return (v>=0?'+':'')+v+'%'}},
+ {k:'cloudG',t:'Cloud growth',f:function(v){return '+'+v+'%'}},{k:'capex',t:'Capex',f:function(v){return fmtB(v)}},
+ {k:'intensity',t:'Capex intensity',f:function(v){return v.toFixed(1)+'%'}},{k:'margin',t:'Op. margin',f:function(v){return v.toFixed(1)+'%'}},
+ {k:'rxTxt',t:'Reaction'}];
+IDS.forEach(function(k){D[k].rxTxt=D[k].rx.label;});
+var sortK='cloudG',sortDir=-1;
+function drawTable(){
+ document.getElementById('thead').innerHTML=COLS.map(function(c){var a=c.k===sortK;return '<th><button id="sort-'+c.k+'" data-k="'+c.k+'" data-active="'+a+'">'+c.t+(a?(sortDir<0?' ▼':' ▲'):'')+'</button></th>'}).join('');
+ document.querySelectorAll('#thead button').forEach(function(b){b.onclick=function(){var k=b.dataset.k;if(k==='rxTxt')return;sortDir=(k===sortK)?-sortDir:-1;sortK=k;drawTable();};});
+ var rows=on().slice().sort(function(a,b){var x=D[a][sortK],y=D[b][sortK];return typeof x==='string'?x.localeCompare(y)*sortDir:(x-y)*sortDir;});
+ document.getElementById('tbody').innerHTML=rows.map(function(k,i){var d=D[k];return '<tr>'+COLS.map(function(c){
+  if(c.k==='name')return '<td><span class="co" style="color:'+C[k]+'">'+k+'</span> <span style="color:var(--muted);font-family:var(--sans);font-size:13px">'+d.name+'</span></td>';
+  var v=d[c.k];var cls='';if(c.k==='surp')cls=v>=0?'up':'down';if(c.k==='rxTxt')cls=d.rx.kind==='mixed'?'warn':'down';
+  if(c.k===sortK&&i===0&&sortK!=='name')cls+=' hl" style="color:var(--fg);text-shadow:0 0 12px '+C[k];
+  return '<td class="'+cls+'">'+(c.k==='margin'&&k==='MSFT'?'~':'')+(c.f?c.f(v):v)+'</td>'}).join('')+'</tr>'}).join('');
+}
+
+/* outlook */
+document.getElementById('outlookCards').innerHTML=IDS.map(function(k){var d=D[k];return '<details id="ol-'+k+'" style="--c:'+C[k]+'" open><summary><span><span class="tk">'+k+'</span> <span style="font-weight:700;margin-left:6px">'+d.name+'</span></span><span class="chev">▾</span></summary>'+
+ '<div class="dbody"><h4>Guidance &amp; outlook</h4><ul>'+d.guide.map(function(g){return '<li>'+g+'</li>'}).join('')+'</ul><h4>Risks to watch</h4><ul class="risk">'+d.risks.map(function(g){return '<li>'+g+'</li>'}).join('')+'</ul></div></details>'}).join('');
+
+function refresh(){
+ IDS.forEach(function(k){document.getElementById('card-'+k).classList.toggle('off',!active[k]);document.getElementById('ol-'+k).classList.toggle('off',!active[k]);});
+ drawExplorer();drawEps();drawRx();drawTable();
+}
+refresh();drawMix();
+})();
+</script>

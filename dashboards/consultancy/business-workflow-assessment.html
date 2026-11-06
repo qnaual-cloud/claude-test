@@ -1,0 +1,636 @@
+<title>Business Workflow Assessment &amp; AI Improvement Dashboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: consultancy report-dashboard. Navy masthead with demo banner, KPI band, then numbered report sections in a single centred column; tools sit inside white "exhibit" panels with gold rules. */
+:root{
+  --navy:#0E2240; --navy2:#16305A; --navy-ink:#0B1A33;
+  --gold:#B8924A; --gold-soft:rgba(184,146,74,.14); --gold-line:rgba(184,146,74,.45);
+  --bg:#F4F6FA; --panel:#FFFFFF; --panel2:#F7F8FB; --line:#DDE3EC; --line2:#C9D2DF;
+  --fg:#14223A; --muted:#5A6A82; --dim:#8593A8;
+  --hi:#B4372F; --hi-soft:rgba(180,55,47,.10); --med:#B07A12; --med-soft:rgba(176,122,18,.12); --lo:#2F7A55; --lo-soft:rgba(47,122,85,.12);
+  --c1:#1F4E8C; --c2:#B8924A; --c3:#4F7FA8; --c4:#7A8BA6;
+  --mast-fg:#FFFFFF; --mast-muted:#B9C6DA;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --sans:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1628; --panel:#10213D; --panel2:#0D1C34; --line:#22375A; --line2:#2C4570;
+  --fg:#EEF2F8; --muted:#A3B2C9; --dim:#7487A3;
+  --gold:#D4B06A; --gold-soft:rgba(212,176,106,.14); --gold-line:rgba(212,176,106,.45);
+  --hi:#F08A80; --hi-soft:rgba(240,138,128,.14); --med:#E7B65A; --med-soft:rgba(231,182,90,.14); --lo:#6FCB9C; --lo-soft:rgba(111,203,156,.14);
+  --c1:#6FA3E6; --c2:#D4B06A; --c3:#8FB8DA; --c4:#9AA9C2;
+  --navy:#07132A; --navy2:#0E2240; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A1628; --panel:#10213D; --panel2:#0D1C34; --line:#22375A; --line2:#2C4570;
+  --fg:#EEF2F8; --muted:#A3B2C9; --dim:#7487A3;
+  --gold:#D4B06A; --gold-soft:rgba(212,176,106,.14); --gold-line:rgba(212,176,106,.45);
+  --hi:#F08A80; --hi-soft:rgba(240,138,128,.14); --med:#E7B65A; --med-soft:rgba(231,182,90,.14); --lo:#6FCB9C; --lo-soft:rgba(111,203,156,.14);
+  --c1:#6FA3E6; --c2:#D4B06A; --c3:#8FB8DA; --c4:#9AA9C2;
+  --navy:#07132A; --navy2:#0E2240; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.55;font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--navy)}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.inner{max-width:1200px;margin:0 auto}
+h1,h2,h3{font-family:var(--serif);text-wrap:balance;margin:0}
+button{font:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* demo banner */
+.demo{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--gold);color:#1A1406}
+.demo .inner{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;padding-block:7px;font:700 12px var(--sans);letter-spacing:.14em;text-transform:uppercase}
+.demo span:last-child{letter-spacing:.04em;text-transform:none;font-weight:600}
+
+/* masthead */
+.mast{background:linear-gradient(160deg,var(--navy) 0%,var(--navy2) 100%);color:var(--mast-fg);border-bottom:3px solid var(--gold)}
+.mast .inner{padding-block:34px 30px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px 32px;align-items:end}
+@media (max-width:820px){.mast .inner{grid-template-columns:1fr}}
+.brand{font:700 12px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:10px}
+.brand i{display:inline-block;width:22px;height:1px;background:var(--gold)}
+.mast h1{font-size:clamp(28px,4.2vw,46px);font-weight:600;line-height:1.08;margin-top:12px;color:var(--mast-fg)}
+.mast .sub{margin-top:8px;font-size:17px;color:var(--mast-muted)}
+.client{border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:14px 16px;background:rgba(255,255,255,.05);min-width:0;font-size:13.5px;color:var(--mast-muted)}
+.client b{color:var(--mast-fg);font-weight:700}
+.client .row{display:flex;justify-content:space-between;gap:18px;padding:3px 0}
+.client .tag{display:inline-block;margin-top:6px;font:700 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+
+/* nav */
+.nav{background:var(--panel);border-bottom:1px solid var(--line)}
+.nav .inner{display:flex;gap:4px 18px;flex-wrap:wrap;padding-block:10px}
+.nav a{color:var(--muted);text-decoration:none;font-size:13.5px;font-weight:600}
+.nav a:hover{color:var(--fg)}
+.nav a b{font-family:var(--mono);color:var(--gold);font-weight:600;margin-right:5px}
+
+main .inner{display:flex;flex-direction:column;gap:46px;padding-block:30px 60px}
+section{scroll-margin-top:60px}
+.sh{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 16px;align-items:baseline;margin-bottom:18px}
+.sh .n{font:600 13px var(--mono);color:var(--gold);border:1px solid var(--gold-line);border-radius:6px;padding:2px 8px}
+.sh h2{font-size:clamp(22px,2.6vw,30px);font-weight:600}
+.sh p{grid-column:2;margin:0;color:var(--muted);max-width:72ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+.panel.ex{border-top:3px solid var(--gold)}
+.exh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 12px;align-items:baseline;margin-bottom:14px}
+.exh h3{font-size:19px;font-weight:600}
+.exh .lbl{font:700 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.ill{font:700 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);border:1px solid var(--gold-line);background:var(--gold-soft);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+.grid>*{min-width:0}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:4px}
+.kpi.gold{border-color:var(--gold-line);background:linear-gradient(160deg,var(--gold-soft),transparent 70%),var(--panel)}
+.kpi .k{font:700 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-family:var(--serif);font-weight:600;font-size:clamp(32px,3.6vw,42px);line-height:1.05;color:var(--fg)}
+.kpi .s{font-size:13px;color:var(--muted)}
+
+/* exec summary */
+.ex-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.ex-list li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;font-size:14.5px}
+.ex-list .rk{font:600 13px var(--mono);color:var(--gold);border:1px solid var(--gold-line);border-radius:6px;height:24px;display:grid;place-items:center}
+.ex-list b{display:block}
+.ex-list span{color:var(--muted);font-size:13.5px}
+.note{font-size:12.5px;color:var(--muted)}
+.risk li .rk{color:var(--hi);border-color:var(--hi)}
+
+/* priority pills */
+.pill{display:inline-flex;align-items:center;gap:6px;font:700 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.p-High{color:var(--hi);background:var(--hi-soft)} .p-Medium{color:var(--med);background:var(--med-soft)} .p-Low{color:var(--lo);background:var(--lo-soft)}
+
+/* selector */
+.sel{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.sel button{cursor:pointer;border:1px solid var(--line2);background:var(--panel2);color:var(--muted);border-radius:10px;padding:9px 14px;font-weight:700;font-size:13.5px;display:inline-flex;align-items:center;gap:8px}
+.sel button .sw{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.sel button[aria-pressed="true"]{color:var(--fg);border-color:var(--gold);background:var(--gold-soft);box-shadow:inset 0 -2px 0 var(--gold)}
+.detail{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:16px}
+.detail h4{margin:0 0 6px;font:700 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.detail ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.detail p{margin:0;font-size:14px}
+.dhead{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.dhead h3{font-size:22px;font-weight:600}
+.dhead .hrs{font:600 14px var(--mono);color:var(--muted)}
+.cv{position:relative;height:300px}
+.cv.sm{height:260px}
+
+/* table */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:820px;font-size:14px}
+th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+thead th{background:var(--panel2);font:700 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);text-align:right;white-space:nowrap}
+tbody tr{cursor:pointer}
+tbody tr:hover td,tbody tr.on td{background:var(--gold-soft)}
+
+/* solutions */
+.sol{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.sol .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.sol h3{font-size:18px;font-weight:600}
+.cx{font:700 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line2);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.lane{display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 12px;font-size:13.5px;padding-top:10px;border-top:1px solid var(--line)}
+.lane dt{font:700 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);padding-top:3px}
+.lane dd{margin:0}
+.lane dd.ai{color:var(--c1)} .lane dd.hu{color:var(--gold)}
+.split{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--line)}
+.split i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+/* calculator */
+.calc{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.calc{grid-template-columns:1fr}}
+.slider{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.slider:last-of-type{border-bottom:0}
+.slider label{font-weight:700;font-size:14px}
+.slider .meta{font-size:12.5px;color:var(--muted);grid-column:1/-1}
+.slider output{font:600 15px var(--mono);color:var(--gold);text-align:right}
+input[type=range]{grid-column:1/-1;width:100%;height:22px;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:linear-gradient(90deg,var(--gold) var(--pct,50%),var(--line) var(--pct,50%))}
+input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--line)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:999px;background:var(--gold)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--panel);border:3px solid var(--gold);margin-top:-7px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--panel);border:3px solid var(--gold)}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.presets button{cursor:pointer;border:1px solid var(--line2);background:var(--panel2);color:var(--fg);border-radius:8px;padding:7px 12px;font-weight:700;font-size:13px}
+.presets button[aria-pressed="true"]{border-color:var(--gold);background:var(--gold-soft)}
+.rate{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+.rate label{font-weight:700;font-size:14px}
+.rate .in{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:8px;background:var(--panel);overflow:hidden}
+.rate .in span{padding:7px 9px;color:var(--muted);font-weight:700;border-right:1px solid var(--line)}
+.rate input{width:84px;border:0;background:transparent;color:var(--fg);font:600 15px var(--mono);padding:7px 9px}
+.rate .hint{font-size:12.5px;color:var(--muted)}
+.res{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.res .r{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel2)}
+.res .r.big{grid-column:1/-1;border-color:var(--gold-line);background:linear-gradient(160deg,var(--gold-soft),transparent 75%),var(--panel2)}
+.res .k{font:700 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.res .v{font-family:var(--serif);font-weight:600;font-size:28px;line-height:1.1}
+.res .r.big .v{font-size:38px}
+.res .s{font-size:12.5px;color:var(--muted)}
+.caveat{margin-top:12px;border-left:3px solid var(--gold);background:var(--gold-soft);padding:12px 14px;border-radius:0 10px 10px 0;font-size:13.5px}
+.caveat b{display:block;margin-bottom:2px}
+.calc-table td,.calc-table th{padding:9px 12px}
+.calc-table{min-width:560px}
+.calc-table tbody tr{cursor:default}
+.calc-table tbody tr:hover td{background:transparent}
+.calc-table tfoot td{font-weight:800;border-top:2px solid var(--line2);border-bottom:0}
+
+/* flow */
+.toggle{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.toggle button{cursor:pointer;border:0;background:var(--panel2);color:var(--muted);padding:9px 16px;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.toggle button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.flows{display:flex;flex-direction:column;gap:18px}
+.flow{border-radius:14px;padding:16px;border:1px solid var(--line);background:var(--panel2);transition:opacity .25s}
+.flow.dim{opacity:.38}
+.flow .fh{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;align-items:baseline;margin-bottom:12px}
+.flow .fh b{font:800 12px var(--sans);letter-spacing:.14em;text-transform:uppercase}
+.flow.before .fh b{color:var(--hi)} .flow.after .fh b{color:var(--lo)}
+.flow .fh span{font-size:13px;color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;align-items:stretch}
+@media (max-width:860px){.steps{grid-template-columns:1fr}}
+.step{position:relative;cursor:pointer;text-align:left;border:1px solid var(--line2);background:var(--panel);color:var(--fg);border-radius:12px;padding:12px 12px 12px 14px;display:flex;flex-direction:column;gap:4px;min-height:96px;transition:transform .15s,border-color .15s}
+.step:hover{transform:translateY(-2px)}
+.step .no{font:600 11px var(--mono);color:var(--dim)}
+.step .t{font-weight:800;font-size:14px;line-height:1.25}
+.step .m{font-size:12px;color:var(--muted)}
+.before .step{border-left:3px solid var(--hi)}
+.after .step{border-left:3px solid var(--lo)}
+.after .step.human{border-left-color:var(--gold);background:linear-gradient(160deg,var(--gold-soft),transparent 70%),var(--panel)}
+.step[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold-soft)}
+.step:not(:last-child)::after{content:"→";position:absolute;right:-12px;top:50%;transform:translateY(-50%);font-weight:800;color:var(--dim);z-index:1}
+@media (max-width:860px){.step:not(:last-child)::after{content:"↓";right:auto;left:22px;top:auto;bottom:-15px;transform:none}}
+.fdetail{margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px;border-top:1px solid var(--line);padding-top:16px}
+.fdetail h4{margin:0 0 4px;font:700 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.fdetail p{margin:0;font-size:14px}
+.fdetail .ttl{font-family:var(--serif);font-size:20px;font-weight:600}
+
+/* roadmap */
+.gantt{display:flex;flex-direction:column;gap:10px}
+.grow{display:grid;grid-template-columns:200px minmax(0,1fr);gap:12px;align-items:center}
+@media (max-width:640px){.grow{grid-template-columns:1fr}}
+.grow button{cursor:pointer;text-align:left;border:1px solid var(--line2);background:var(--panel2);color:var(--fg);border-radius:10px;padding:9px 12px;font-weight:800;font-size:13.5px}
+.grow button span{display:block;font:600 11.5px var(--mono);color:var(--muted)}
+.grow button[aria-pressed="true"]{border-color:var(--gold);background:var(--gold-soft)}
+.track{position:relative;height:30px;border-radius:8px;background:repeating-linear-gradient(90deg,transparent 0 calc(100%/20 - 1px),var(--line) calc(100%/20 - 1px) calc(100%/20))}
+.bar{position:absolute;top:4px;bottom:4px;border-radius:6px;display:flex;align-items:center;padding:0 10px;font:700 11.5px var(--sans);color:#fff;white-space:nowrap;overflow:hidden}
+.axis{display:grid;grid-template-columns:200px minmax(0,1fr);gap:12px;font:600 11px var(--mono);color:var(--dim)}
+.axis div:last-child{display:flex;justify-content:space-between}
+@media (max-width:640px){.axis{grid-template-columns:1fr}.axis div:first-child{display:none}}
+.phase{margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;border-top:1px solid var(--line);padding-top:16px}
+.phase h4{margin:0 0 6px;font:700 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.phase ul{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.phase .ttl{font-family:var(--serif);font-size:21px;font-weight:600}
+
+footer{background:var(--navy);color:var(--mast-muted);border-top:3px solid var(--gold)}
+footer .inner{padding-block:24px 30px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+footer b{color:var(--mast-fg)}
+footer .brandline{font:700 12px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="demo"><div class="inner gut"><span>Demonstration — Illustrative business data</span><span>Fictional company. Not connected to any live business system.</span></div></div>
+
+<header class="mast"><div class="inner gut">
+  <div>
+    <div class="brand"><i></i>DigitalAIbyNaual</div>
+    <h1>Business Workflow Assessment &amp; AI Improvement Dashboard</h1>
+    <div class="sub">AI Automation Consultant &amp; Business Process Strategist</div>
+  </div>
+  <div class="client">
+    <div class="row"><span>Client</span><b>Ashbury Lane Advisory Ltd</b></div>
+    <div class="row"><span>Sector</span><b>Professional services, UK</b></div>
+    <div class="row"><span>Team</span><b>15 employees</b></div>
+    <div class="row"><span>Prepared for</span><b>Managing Director</b></div>
+    <span class="tag">Fictional demonstration client</span>
+  </div>
+</div></header>
+
+<nav class="nav" aria-label="Report sections"><div class="inner gut">
+  <a href="#summary"><b>00</b>Executive summary</a>
+  <a href="#assessment"><b>01</b>Current assessment</a>
+  <a href="#solutions"><b>02</b>Recommended solutions</a>
+  <a href="#impact"><b>03</b>Impact calculator</a>
+  <a href="#transform"><b>04</b>Workflow transformation</a>
+  <a href="#roadmap"><b>05</b>Implementation roadmap</a>
+  <a href="#risks"><b>06</b>Risks &amp; oversight</a>
+</div></nav>
+
+<main><div class="inner gut">
+
+  <!-- 00 executive summary -->
+  <section id="summary">
+    <div class="sh"><span class="n">00</span><h2>Executive summary</h2><p>Ashbury Lane spends an estimated 40 staff hours a week on four manual workflows. Targeted, human-supervised AI assistance could release part of that time for client work. Figures update with the assumptions in the impact calculator.</p></div>
+    <div class="kpis">
+      <div class="kpi"><span class="k">Current manual workload</span><span class="v" id="k-cur">40.0 h</span><span class="s">per week across 4 workflows</span></div>
+      <div class="kpi"><span class="k">Potential hours released</span><span class="v" id="k-save">—</span><span class="s" id="k-save-s">per week</span></div>
+      <div class="kpi"><span class="k">Potential monthly capacity</span><span class="v" id="k-month">—</span><span class="s">hours per month (× 4.33 weeks)</span></div>
+      <div class="kpi gold"><span class="k">Illustrative annual capacity value</span><span class="v" id="k-value">—</span><span class="s" id="k-value-s">staff time value, not cash saving</span></div>
+    </div>
+    <div class="grid g3" style="margin-top:16px">
+      <div class="panel ex">
+        <div class="exh"><h3>Top three inefficiencies</h3></div>
+        <ol class="ex-list">
+          <li><span class="rk">1</span><div><b>Enquiry follow-ups depend on memory</b><span>12 h/week in a shared inbox, with no named owner or reminders.</span></div></li>
+          <li><span class="rk">2</span><div><b>Management reports are rebuilt by hand</b><span>8 h/week copying figures from scattered spreadsheets; reports arrive late.</span></div></li>
+          <li><span class="rk">3</span><div><b>Onboarding documents are chased by email</b><span>10 h/week on checklists, reminders and filing before work can start.</span></div></li>
+        </ol>
+      </div>
+      <div class="panel ex">
+        <div class="exh"><h3>Top three improvements</h3></div>
+        <ol class="ex-list">
+          <li><span class="rk">1</span><div><b>Structured enquiry intake with AI-drafted replies</b><span>Staff approve every reply before it is sent.</span></div></li>
+          <li><span class="rk">2</span><div><b>One reporting source with an AI-assembled draft</b><span>Managers check figures and commentary before circulation.</span></div></li>
+          <li><span class="rk">3</span><div><b>Onboarding checklist with automatic gap-checking</b><span>Identity and compliance checks stay with staff.</span></div></li>
+        </ol>
+      </div>
+      <div class="panel ex">
+        <div class="exh"><h3>Implementation priorities</h3></div>
+        <ol class="ex-list">
+          <li><span class="rk">1</span><div><b>Quick wins first</b><span>Enquiry intake and admin templates: low complexity, early time back.</span></div></li>
+          <li><span class="rk">2</span><div><b>Fix the data before automating reports</b><span>Agree KPIs and one shared source, then test the AI draft.</span></div></li>
+          <li><span class="rk">3</span><div><b>Measure, then expand</b><span>Track hours and quality against this baseline before scaling.</span></div></li>
+        </ol>
+        <p class="note" style="margin:12px 0 0">Key risks and oversight requirements are set out in section 06.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 01 assessment -->
+  <section id="assessment">
+    <div class="sh"><span class="n">01</span><h2>Current business assessment</h2><p>Four workflows account for the manual effort. Select a workflow, or a row in the table, to see the activities behind the hours.</p></div>
+    <div class="grid g2">
+      <div class="panel ex">
+        <div class="exh"><h3>Weekly hours by workflow</h3><span class="ill">Illustrative</span></div>
+        <div class="cv"><canvas id="hoursChart" role="img" aria-label="Weekly manual hours by workflow"></canvas></div>
+      </div>
+      <div class="panel ex">
+        <div class="exh"><h3>Where the 40 hours go</h3><span class="ill">Illustrative</span></div>
+        <div class="cv"><canvas id="shareChart" role="img" aria-label="Share of manual hours by workflow"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel ex" style="margin-top:16px">
+      <div class="sel" id="selA" role="group" aria-label="Select workflow"></div>
+      <div id="detailA"></div>
+    </div>
+
+    <div class="tw" style="margin-top:16px">
+      <table id="assessTable">
+        <thead><tr><th>Workflow</th><th>Current manual activities</th><th style="text-align:right">Hours / week</th><th>Main inefficiency</th><th>Business impact</th><th>Priority</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="panel"><div class="exh"><h3>Cross-cutting issue: scattered information</h3></div><p style="margin:0;color:var(--muted)">Client details, deadlines and figures sit across personal inboxes and at least a dozen spreadsheets (illustrative). The same facts are typed in several places, and nobody holds one current version.</p></div>
+      <div class="panel"><div class="exh"><h3>Cross-cutting issue: limited visibility</h3></div><p style="margin:0;color:var(--muted)">Leadership sees performance only when a report is compiled. Open enquiries, onboarding status and workload are not visible day to day.</p></div>
+    </div>
+  </section>
+
+  <!-- 02 solutions -->
+  <section id="solutions">
+    <div class="sh"><span class="n">02</span><h2>Recommended AI-assisted solutions</h2><p>Each recommendation separates what to simplify, where AI assists, and what stays with people. Nothing client-facing or compliance-related is sent or decided without human review.</p></div>
+    <div class="grid g2" id="solCards"></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="panel ex">
+        <div class="exh"><h3>How the work divides after improvement</h3><span class="ill">Illustrative</span></div>
+        <div id="splits" style="display:flex;flex-direction:column;gap:14px"></div>
+        <div class="legend" style="margin-top:14px"><span><i style="background:var(--c1)"></i>Streamlined or AI-assisted</span><span><i style="background:var(--gold)"></i>Human review &amp; judgement</span><span><i style="background:var(--line2)"></i>Unchanged manual work</span></div>
+      </div>
+      <div class="panel ex">
+        <div class="exh"><h3>Prioritisation matrix</h3><span class="ill">Illustrative</span></div>
+        <div class="cv sm"><canvas id="matrix" role="img" aria-label="Potential hours saved against implementation complexity"></canvas></div>
+        <p class="note" style="margin:8px 0 0">Bubble size shows current weekly hours. Top-left is the best place to start: more time released for less complexity.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 impact -->
+  <section id="impact">
+    <div class="sh"><span class="n">03</span><h2>Time savings &amp; business impact</h2><p>Adjust the potential saving for each workflow and the hourly cost. All results recalculate from the 40-hour baseline.</p></div>
+    <div class="calc">
+      <div class="panel ex">
+        <div class="exh"><h3>Assumptions</h3><span class="ill">Adjustable</span></div>
+        <div class="presets" role="group" aria-label="Scenario">
+          <button id="pr-cons" data-p="cons">Conservative</button>
+          <button id="pr-mod" data-p="mod" aria-pressed="true">Moderate</button>
+          <button id="pr-amb" data-p="amb">Ambitious</button>
+        </div>
+        <div id="sliders"></div>
+        <div class="rate">
+          <label for="rateIn">Hourly labour cost</label>
+          <div class="in"><span>£</span><input id="rateIn" type="number" min="10" max="200" step="1" value="30" inputmode="decimal"></div>
+          <span class="hint">Fully loaded cost per staff hour (illustrative).</span>
+        </div>
+      </div>
+      <div class="panel ex">
+        <div class="exh"><h3>Results</h3><span class="ill">Illustrative</span></div>
+        <div class="res">
+          <div class="r"><div class="k">Current weekly hours</div><div class="v" id="r-cur">40.0</div><div class="s">baseline</div></div>
+          <div class="r"><div class="k">Projected weekly hours</div><div class="v" id="r-proj">—</div><div class="s">after improvement</div></div>
+          <div class="r"><div class="k">Hours saved / week</div><div class="v" id="r-week">—</div><div class="s" id="r-pct">—</div></div>
+          <div class="r"><div class="k">Hours saved / month</div><div class="v" id="r-month">—</div><div class="s">weekly × 4.33</div></div>
+          <div class="r big"><div class="k">Illustrative annual labour capacity value</div><div class="v" id="r-value">—</div><div class="s" id="r-value-s">—</div></div>
+        </div>
+        <div class="cv sm" style="margin-top:14px"><canvas id="impactChart" role="img" aria-label="Current and projected weekly hours by workflow"></canvas></div>
+      </div>
+    </div>
+    <div class="tw" style="margin-top:16px">
+      <table class="calc-table">
+        <thead><tr><th>Workflow</th><th style="text-align:right">Current h/wk</th><th style="text-align:right">Saving</th><th style="text-align:right">Projected h/wk</th><th style="text-align:right">Saved h/wk</th><th style="text-align:right">Saved h/month</th><th style="text-align:right">Capacity value / yr</th></tr></thead>
+        <tbody id="calcBody"></tbody>
+        <tfoot><tr id="calcFoot"></tr></tfoot>
+      </table>
+    </div>
+    <div class="caveat"><b>Capacity value is not a cash saving or ROI.</b>It is the cost of the staff time that could be released (hours saved × 52 weeks × hourly cost). Cash savings arise only if costs actually change, for example lower overtime or avoided hiring. Realised ROI would also have to subtract implementation, software and training costs, which are not modelled here. Monthly figures use 4.33 weeks; annual figures use 52 weeks.</div>
+  </section>
+
+  <!-- 04 transformation -->
+  <section id="transform">
+    <div class="sh"><span class="n">04</span><h2>Workflow transformation</h2><p>The same information journey, before and after. Select any step to see how it works and where people stay in control.</p></div>
+    <div class="panel ex">
+      <div class="toggle" role="group" aria-label="Compare view">
+        <button id="v-both" data-v="both" aria-pressed="true">Compare</button>
+        <button id="v-before" data-v="before" aria-pressed="false">Before</button>
+        <button id="v-after" data-v="after" aria-pressed="false">After</button>
+      </div>
+      <div class="flows">
+        <div class="flow before" id="flowBefore"><div class="fh"><b>Before · manual</b><span>Information re-keyed at every step; reports reach managers late.</span></div><div class="steps" id="stepsBefore"></div></div>
+        <div class="flow after" id="flowAfter"><div class="fh"><b>After · AI-assisted, human-reviewed</b><span>Captured once, organised by AI, checked by people, reported from one source.</span></div><div class="steps" id="stepsAfter"></div></div>
+      </div>
+      <div class="fdetail" id="fdetail"></div>
+    </div>
+  </section>
+
+  <!-- 05 roadmap -->
+  <section id="roadmap">
+    <div class="sh"><span class="n">05</span><h2>Implementation roadmap</h2><p>A phased approach that proves value on low-risk workflows before wider change. Timings are indicative and depend on team availability.</p></div>
+    <div class="panel ex">
+      <div class="exh"><h3>Indicative timeline (weeks)</h3><span class="ill">Illustrative</span></div>
+      <div class="gantt" id="gantt"></div>
+      <div class="axis" style="margin-top:6px"><div></div><div><span>Wk 0</span><span>4</span><span>8</span><span>12</span><span>16</span><span>20</span></div></div>
+      <div class="phase" id="phaseDetail"></div>
+    </div>
+  </section>
+
+  <!-- 06 risks -->
+  <section id="risks">
+    <div class="sh"><span class="n">06</span><h2>Risks &amp; human oversight</h2><p>AI assistance improves speed and consistency only when controls are designed in from the start.</p></div>
+    <div class="grid g2">
+      <div class="panel ex">
+        <div class="exh"><h3>Important risks</h3></div>
+        <ol class="ex-list risk">
+          <li><span class="rk">!</span><div><b>Data protection</b><span>Client personal data must be handled in line with UK GDPR, with clear rules on which tools may process it.</span></div></li>
+          <li><span class="rk">!</span><div><b>Accuracy of AI drafts</b><span>Drafts can be wrong or incomplete. Nothing reaches a client or a report without review.</span></div></li>
+          <li><span class="rk">!</span><div><b>Poor source data</b><span>Automating messy spreadsheets spreads errors faster. Data clean-up comes first.</span></div></li>
+          <li><span class="rk">!</span><div><b>Staff adoption</b><span>New steps fail if the team is not trained and involved in the design.</span></div></li>
+          <li><span class="rk">!</span><div><b>Over-automation</b><span>Relationship and judgement tasks lose value if removed from people.</span></div></li>
+        </ol>
+      </div>
+      <div class="panel ex">
+        <div class="exh"><h3>Human oversight requirements</h3></div>
+        <ol class="ex-list">
+          <li><span class="rk">✓</span><div><b>Approve before sending</b><span>Every client email, fee statement or document request is reviewed by a named person.</span></div></li>
+          <li><span class="rk">✓</span><div><b>Compliance stays manual</b><span>Identity, anti-money-laundering and engagement-letter decisions remain with qualified staff.</span></div></li>
+          <li><span class="rk">✓</span><div><b>Managers sign off reports</b><span>Figures are checked against source before circulation.</span></div></li>
+          <li><span class="rk">✓</span><div><b>Clear ownership</b><span>Each workflow has an owner who reviews quality monthly.</span></div></li>
+          <li><span class="rk">✓</span><div><b>Measured against baseline</b><span>Hours and error rates are tracked so benefits are evidenced, not assumed.</span></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+</div></main>
+
+<footer><div class="inner gut">
+  <div class="brandline">DigitalAIbyNaual</div>
+  <div><b>Demonstration — illustrative business data.</b> Ashbury Lane Advisory Ltd is a fictional company created for this demonstration. All hours, percentages and values are illustrative assumptions, not client results.</div>
+  <div>This dashboard is not connected to any live business system. Projected benefits are potential outcomes, not guaranteed results, and depend on implementation, data quality and staff adoption.</div>
+</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function(){
+var css=getComputedStyle(document.documentElement);function tok(n){return css.getPropertyValue(n).trim();}
+var WEEKS_M=4.33, WEEKS_Y=52;
+
+/* Illustrative baseline: 40 hours per week in total */
+var P=[
+ {id:'enq',name:'Client enquiries & follow-ups',short:'Enquiries',hours:12,priority:'High',cx:'Low',cxN:1,c:'--c1',
+  presets:{cons:25,mod:40,amb:55},split:{ai:45,hu:20},
+  acts:['Triage enquiries from a shared inbox','Write replies and fee information by hand','Track follow-ups in a spreadsheet','Re-key contact details into client lists'],
+  issues:['No named owner for each enquiry','Follow-up reminders depend on memory','Similar replies rewritten many times a week'],
+  impact:'Slow first responses and missed follow-ups put new work at risk.',
+  streamline:'One enquiry form and inbox rules that route each enquiry to a named owner.',
+  ai:'Summarises each enquiry, drafts a first reply from approved templates and suggests follow-up dates.',
+  human:'Staff edit and send every reply. Fees, scope and advice are always confirmed by a person.',
+  benefit:'Faster, consistent responses and no forgotten follow-ups.'},
+ {id:'onb',name:'Client onboarding & documents',short:'Onboarding',hours:10,priority:'Medium',cx:'Medium',cxN:2,c:'--c2',
+  presets:{cons:20,mod:35,amb:50},split:{ai:35,hu:30},
+  acts:['Email document checklists to new clients','Chase missing ID and signed letters','Save files to folders by hand','Set up the client in several spreadsheets'],
+  issues:['Documents arrive in mixed formats by email','Repeated manual chasing','Missing items found late'],
+  impact:'Billable work starts later and compliance checks are delayed.',
+  streamline:'One onboarding checklist and a single secure place to upload documents.',
+  ai:'Checks submissions against the checklist, flags gaps, drafts reminders and pre-fills the client record.',
+  human:'Identity, anti-money-laundering checks and engagement-letter approval stay with qualified staff.',
+  benefit:'Complete files sooner, fewer reminder emails, clearer audit trail.'},
+ {id:'rep',name:'Management reporting',short:'Reporting',hours:8,priority:'High',cx:'Medium',cxN:2,c:'--c3',
+  presets:{cons:30,mod:50,amb:65},split:{ai:55,hu:25},
+  acts:['Copy figures from spreadsheets and emails','Build weekly and monthly reports by hand','Reconcile numbers that disagree','Write commentary from scratch'],
+  issues:['Data spread across many files','Different versions of the same numbers','Reports land days after period end'],
+  impact:'Leaders decide with late, partial information.',
+  streamline:'Agreed KPIs and one shared data source for every report.',
+  ai:'Assembles the standard report, drafts commentary on changes and highlights unusual figures.',
+  human:'Managers check figures against source and approve commentary before circulation.',
+  benefit:'Reports on time, one version of the truth, more time for analysis.'},
+ {id:'adm',name:'Administrative coordination',short:'Admin',hours:10,priority:'Medium',cx:'Low',cxN:1,c:'--c4',
+  presets:{cons:15,mod:30,amb:45},split:{ai:30,hu:15},
+  acts:['Schedule meetings by email','Update trackers in several places','Turn emails into to-do lists','Chase timesheets and internal sign-offs'],
+  issues:['Same information updated in several places','Tasks tracked in personal inboxes','Frequent interruptions'],
+  impact:'Staff time is pulled away from client work; re-keying causes errors.',
+  streamline:'A shared task tracker and self-service meeting booking.',
+  ai:'Turns emails into tasks, drafts routine internal messages and prepares meeting notes.',
+  human:'People set priorities and handle sensitive or client-specific messages.',
+  benefit:'Less re-keying, clearer task ownership, fewer interruptions.'}
+];
+P.forEach(function(p){p.save=p.presets.mod;});
+var rate=30;
+
+function col(p){return tok(p.c);}
+function f1(n){return n.toLocaleString('en-GB',{minimumFractionDigits:1,maximumFractionDigits:1});}
+function gbp(n){return '£'+Math.round(n).toLocaleString('en-GB');}
+function calc(){
+  var r=P.map(function(p){var saved=p.hours*p.save/100;return {p:p,cur:p.hours,saved:saved,proj:p.hours-saved,month:saved*WEEKS_M,value:saved*WEEKS_Y*rate};});
+  var t={cur:0,saved:0,proj:0,month:0,value:0};r.forEach(function(x){t.cur+=x.cur;t.saved+=x.saved;t.proj+=x.proj;t.month+=x.month;t.value+=x.value;});
+  return {rows:r,t:t};
+}
+
+/* ---------- assessment ---------- */
+var selA=document.getElementById('selA'),cur='enq';
+P.forEach(function(p){var b=document.createElement('button');b.id='sel-'+p.id;b.style.setProperty('--c','var('+p.c+')');b.setAttribute('aria-pressed',p.id===cur);b.innerHTML='<span class="sw"></span>'+p.short;b.onclick=function(){pick(p.id);};selA.appendChild(b);});
+function pick(id){cur=id;
+  selA.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.id==='sel-'+id);});
+  document.querySelectorAll('#assessTable tbody tr').forEach(function(tr){tr.classList.toggle('on',tr.dataset.id===id);});
+  var p=P.filter(function(x){return x.id===id})[0];
+  document.getElementById('detailA').innerHTML='<div class="dhead"><h3>'+p.name+'</h3><span class="pill p-'+p.priority+'">'+p.priority+' priority</span><span class="hrs">'+p.hours+' h / week · '+Math.round(p.hours/40*100)+'% of manual workload</span></div>'+
+   '<div class="detail"><div><h4>Current manual activities</h4><ul>'+p.acts.map(function(a){return '<li>'+a+'</li>'}).join('')+'</ul></div>'+
+   '<div><h4>Operational inefficiencies</h4><ul>'+p.issues.map(function(a){return '<li>'+a+'</li>'}).join('')+'</ul></div>'+
+   '<div><h4>Business impact</h4><p>'+p.impact+'</p><h4 style="margin-top:12px">Recommended direction</h4><p>'+p.streamline+'</p></div></div>';
+  if(hoursChart){hoursChart.data.datasets[0].backgroundColor=P.map(function(x){return x.id===id?col(x):col(x)+'55'});hoursChart.update();}
+}
+document.querySelector('#assessTable tbody').innerHTML=P.map(function(p){return '<tr data-id="'+p.id+'" tabindex="0"><td><b>'+p.name+'</b></td><td>'+p.acts.slice(0,2).join('; ')+'</td><td class="num">'+p.hours.toFixed(1)+'</td><td>'+p.issues[0]+'</td><td>'+p.impact+'</td><td><span class="pill p-'+p.priority+'">'+p.priority+'</span></td></tr>'}).join('');
+document.querySelectorAll('#assessTable tbody tr').forEach(function(tr){tr.onclick=function(){pick(tr.dataset.id)};tr.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(tr.dataset.id)}};});
+
+/* ---------- solutions ---------- */
+document.getElementById('solCards').innerHTML=P.map(function(p){return '<article class="sol"><div class="top"><div><h3>'+p.name+'</h3></div><span class="cx">'+p.cx+' complexity</span></div>'+
+ '<dl class="lane"><dt>Streamline</dt><dd>'+p.streamline+'</dd><dt>AI assists</dt><dd class="ai">'+p.ai+'</dd><dt>Human oversight</dt><dd class="hu">'+p.human+'</dd><dt>Expected benefit</dt><dd>'+p.benefit+'</dd></dl></article>'}).join('');
+document.getElementById('splits').innerHTML=P.map(function(p){var m=100-p.split.ai-p.split.hu;return '<div><div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:700;margin-bottom:5px"><span>'+p.short+'</span><span style="font-family:var(--mono);font-weight:600;color:var(--muted)">'+p.split.ai+'% · '+p.split.hu+'% · '+m+'%</span></div><div class="split"><i style="width:'+p.split.ai+'%;background:var(--c1)"></i><i style="width:'+p.split.hu+'%;background:var(--gold)"></i><i style="width:'+m+'%;background:var(--line2)"></i></div></div>'}).join('');
+
+/* ---------- calculator ---------- */
+var sl=document.getElementById('sliders');
+sl.innerHTML=P.map(function(p){return '<div class="slider"><label for="s-'+p.id+'">'+p.name+'</label><output id="o-'+p.id+'" for="s-'+p.id+'">'+p.save+'%</output><input type="range" id="s-'+p.id+'" min="0" max="70" step="5" value="'+p.save+'" aria-label="Potential time saving for '+p.name+'"><div class="meta">Baseline '+p.hours+' h/week · potential saving</div></div>'}).join('');
+P.forEach(function(p){document.getElementById('s-'+p.id).addEventListener('input',function(e){p.save=+e.target.value;setPreset(null);update();});});
+var rateIn=document.getElementById('rateIn');
+rateIn.addEventListener('input',function(){var v=parseFloat(rateIn.value);if(isFinite(v)&&v>0){rate=v;update();}});
+function setPreset(k){document.querySelectorAll('.presets button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.p===k)});}
+document.querySelectorAll('.presets button').forEach(function(b){b.onclick=function(){var k=b.dataset.p;P.forEach(function(p){p.save=p.presets[k];document.getElementById('s-'+p.id).value=p.save;});setPreset(k);update();};});
+
+var impactChart,hoursChart,shareChart,matrix;
+function update(){
+  var c=calc(),t=c.t;
+  P.forEach(function(p){document.getElementById('o-'+p.id).textContent=p.save+'%';document.getElementById('s-'+p.id).style.setProperty('--pct',(p.save/70*100)+'%');});
+  var pct=t.saved/t.cur*100;
+  document.getElementById('r-cur').textContent=f1(t.cur);
+  document.getElementById('r-proj').textContent=f1(t.proj);
+  document.getElementById('r-week').textContent=f1(t.saved);
+  document.getElementById('r-pct').textContent=f1(pct)+'% of baseline';
+  document.getElementById('r-month').textContent=f1(t.month);
+  document.getElementById('r-value').textContent=gbp(t.value);
+  document.getElementById('r-value-s').textContent=f1(t.saved*WEEKS_Y)+' h/yr × £'+rate.toLocaleString('en-GB')+'/h · potential capacity, not cash';
+  document.getElementById('k-save').textContent=f1(t.saved)+' h';
+  document.getElementById('k-save-s').textContent='per week · '+f1(pct)+'% of current workload';
+  document.getElementById('k-month').textContent=f1(t.month)+' h';
+  document.getElementById('k-value').textContent=gbp(t.value);
+  document.getElementById('k-value-s').textContent='at £'+rate.toLocaleString('en-GB')+'/h · staff time value, not cash saving';
+  document.getElementById('calcBody').innerHTML=c.rows.map(function(r){return '<tr><td><b>'+r.p.name+'</b></td><td class="num">'+f1(r.cur)+'</td><td class="num">'+r.p.save+'%</td><td class="num">'+f1(r.proj)+'</td><td class="num">'+f1(r.saved)+'</td><td class="num">'+f1(r.month)+'</td><td class="num">'+gbp(r.value)+'</td></tr>'}).join('');
+  document.getElementById('calcFoot').innerHTML='<td>Total</td><td class="num">'+f1(t.cur)+'</td><td class="num">'+f1(pct)+'%</td><td class="num">'+f1(t.proj)+'</td><td class="num">'+f1(t.saved)+'</td><td class="num">'+f1(t.month)+'</td><td class="num">'+gbp(t.value)+'</td>';
+  if(impactChart){impactChart.data.datasets[1].data=c.rows.map(function(r){return +r.proj.toFixed(2)});impactChart.update();}
+  if(matrix){matrix.data.datasets.forEach(function(ds,i){ds.data[0].y=+c.rows[i].saved.toFixed(2)});matrix.update();}
+}
+
+/* ---------- flows ---------- */
+var BEFORE=[
+ {t:'Manual data collection',m:'Email, phone, spreadsheets',how:'Enquiries, documents and figures arrive in different formats and are typed in by hand.',ctl:'No standard fields, so details are missed or entered twice.',who:'Any available staff member'},
+ {t:'Email follow-ups',m:'Inbox reminders',how:'Staff chase missing information and replies one email at a time.',ctl:'Follow-ups rely on memory; nothing flags overdue items.',who:'Whoever picked up the email'},
+ {t:'Spreadsheet updates',m:'Several versions',how:'The same client and status details are updated in multiple trackers.',ctl:'Versions drift apart and errors are hard to trace.',who:'Several people'},
+ {t:'Manual reporting',m:'Copy and paste',how:'Figures are copied from trackers into weekly and monthly reports.',ctl:'Reconciling numbers takes hours; reports are late.',who:'Office manager'},
+ {t:'Management review',m:'Late, partial view',how:'Leaders review last period\'s position once the report is ready.',ctl:'Decisions rely on out-of-date information.',who:'Directors'}];
+var AFTER=[
+ {t:'Structured information capture',m:'Forms & checklists',how:'Enquiry forms and onboarding checklists capture the same fields every time.',ctl:'Information is entered once, at source.',who:'Client or staff, via form'},
+ {t:'AI-assisted organisation',m:'Sort, summarise, draft',how:'AI sorts and summarises submissions, flags gaps and drafts replies and records.',ctl:'AI prepares drafts only; it does not send or decide.',who:'AI assistant'},
+ {t:'Human review',m:'Approval checkpoint',how:'A named person checks, edits and approves drafts and flagged items.',ctl:'Control point: nothing reaches a client or a report without approval.',who:'Workflow owner',human:true},
+ {t:'Centralised reporting',m:'One data source',how:'Approved data flows into one shared source and a standard report draft.',ctl:'One version of the figures; managers sign off before circulation.',who:'Reporting owner'},
+ {t:'Management decisions',m:'Timely, consistent view',how:'Leaders see current status and agreed KPIs on a regular cycle.',ctl:'Decisions rest on reviewed, up-to-date information.',who:'Directors'}];
+function renderSteps(el,arr,kind){el.innerHTML=arr.map(function(s,i){return '<button class="step'+(s.human?' human':'')+'" id="st-'+kind+'-'+i+'" data-k="'+kind+'" data-i="'+i+'" aria-pressed="false"><span class="no">'+(kind==='b'?'B':'A')+(i+1)+'</span><span class="t">'+s.t+'</span><span class="m">'+s.m+'</span></button>'}).join('');}
+renderSteps(document.getElementById('stepsBefore'),BEFORE,'b');renderSteps(document.getElementById('stepsAfter'),AFTER,'a');
+function showStep(k,i){var s=(k==='b'?BEFORE:AFTER)[i];
+  document.querySelectorAll('.step').forEach(function(b){b.setAttribute('aria-pressed',b.id==='st-'+k+'-'+i)});
+  document.getElementById('fdetail').innerHTML='<div><h4>'+(k==='b'?'Before':'After')+' · step '+(i+1)+'</h4><div class="ttl">'+s.t+'</div></div><div><h4>How it works</h4><p>'+s.how+'</p></div><div><h4>'+(k==='b'?'Weakness':'Control')+'</h4><p>'+s.ctl+'</p></div><div><h4>Who is responsible</h4><p>'+s.who+'</p></div>';}
+document.querySelectorAll('.step').forEach(function(b){b.onclick=function(){showStep(b.dataset.k,+b.dataset.i)};});
+showStep('a',2);
+document.querySelectorAll('.toggle button').forEach(function(b){b.onclick=function(){var v=b.dataset.v;
+  document.querySelectorAll('.toggle button').forEach(function(x){x.setAttribute('aria-pressed',x===b)});
+  document.getElementById('flowBefore').classList.toggle('dim',v==='after');document.getElementById('flowAfter').classList.toggle('dim',v==='before');
+  if(v==='before')showStep('b',0); if(v==='after')showStep('a',2);};});
+
+/* ---------- roadmap ---------- */
+var PH=[
+ {n:'Phase 1',t:'Workflow assessment & quick wins',s:0,e:3,wk:'Weeks 1–3',cx:'Low',c:'--c1',
+  ben:['Confirmed baseline of hours and pain points','Reply templates and inbox routing live','Early time back on enquiries and admin'],
+  dep:['Access to sample emails and spreadsheets','Two hours of interviews per team','Named sponsor at director level']},
+ {n:'Phase 2',t:'Design & testing of AI-assisted processes',s:3,e:8,wk:'Weeks 4–8',cx:'Medium',c:'--c3',
+  ben:['Onboarding checklist and gap-checking piloted','Agreed KPIs and one reporting source','Tested review steps for each workflow'],
+  dep:['Phase 1 baseline signed off','Data-protection review of chosen tools','Clean-up of key spreadsheets']},
+ {n:'Phase 3',t:'Controlled implementation & staff adoption',s:8,e:14,wk:'Weeks 9–14',cx:'Medium',c:'--c2',
+  ben:['Workflows rolled out team by team','Staff trained on review and approval','Report drafts produced from one source'],
+  dep:['Successful pilots in Phase 2','Training time in staff calendars','Workflow owners appointed']},
+ {n:'Phase 4',t:'Performance monitoring & refinement',s:14,e:20,wk:'Week 15 onwards',cx:'Low',c:'--c4',
+  ben:['Hours and error rates tracked against baseline','Prompts, templates and checks refined','Evidence for any wider roll-out'],
+  dep:['Simple monthly measurement routine','Feedback from staff and clients','Quarterly review with leadership']}];
+document.getElementById('gantt').innerHTML=PH.map(function(p,i){return '<div class="grow"><button id="ph-'+i+'" data-i="'+i+'" aria-pressed="'+(i===0)+'">'+p.n+' · '+p.t+'<span>'+p.wk+' · '+p.cx+' complexity</span></button><div class="track"><div class="bar" style="left:'+(p.s/20*100)+'%;width:'+((p.e-p.s)/20*100)+'%;background:var('+p.c+')">'+p.wk+'</div></div></div>'}).join('');
+function showPhase(i){var p=PH[i];document.querySelectorAll('.grow button').forEach(function(b){b.setAttribute('aria-pressed',b.id==='ph-'+i)});
+  document.getElementById('phaseDetail').innerHTML='<div><h4>'+p.n+' · '+p.wk+'</h4><div class="ttl">'+p.t+'</div><p class="note" style="margin:6px 0 0">Implementation complexity: <b>'+p.cx+'</b></p></div><div><h4>Expected benefits</h4><ul>'+p.ben.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul></div><div><h4>Dependencies</h4><ul>'+p.dep.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul></div>';}
+document.querySelectorAll('.grow button').forEach(function(b){b.onclick=function(){showPhase(+b.dataset.i)};});
+showPhase(0);
+
+/* ---------- charts ---------- */
+if(window.Chart){
+  Chart.defaults.font.family=tok('--sans');Chart.defaults.color=tok('--muted');Chart.defaults.font.size=12;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)Chart.defaults.animation=false;
+  var grid=tok('--line'),fg=tok('--fg');
+  hoursChart=new Chart(document.getElementById('hoursChart'),{type:'bar',data:{labels:P.map(function(p){return p.short}),datasets:[{data:P.map(function(p){return p.hours}),backgroundColor:P.map(function(p){return col(p)}),borderRadius:6,maxBarThickness:46}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,onClick:function(e,els){if(els.length)pick(P[els[0].index].id)},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' '+c.raw+' hours per week'}}}},
+      scales:{x:{beginAtZero:true,max:14,grid:{color:grid},border:{display:false},ticks:{callback:function(v){return v+' h'}}},y:{grid:{display:false},ticks:{color:fg,font:{weight:'700',size:13}}}}}});
+  shareChart=new Chart(document.getElementById('shareChart'),{type:'doughnut',data:{labels:P.map(function(p){return p.short}),datasets:[{data:P.map(function(p){return p.hours}),backgroundColor:P.map(function(p){return col(p)}),borderColor:tok('--panel'),borderWidth:3}]},
+    options:{maintainAspectRatio:false,cutout:'62%',onClick:function(e,els){if(els.length)pick(P[els[0].index].id)},
+      plugins:{legend:{position:'right',labels:{color:fg,boxWidth:12,padding:14}},tooltip:{callbacks:{label:function(c){return ' '+c.raw+' h/week ('+Math.round(c.raw/40*100)+'%)'}}}}}});
+  impactChart=new Chart(document.getElementById('impactChart'),{type:'bar',data:{labels:P.map(function(p){return p.short}),datasets:[
+     {label:'Current h/week',data:P.map(function(p){return p.hours}),backgroundColor:tok('--line2'),borderRadius:5,maxBarThickness:34},
+     {label:'Projected h/week',data:P.map(function(p){return p.hours}),backgroundColor:tok('--gold'),borderRadius:5,maxBarThickness:34}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:fg,boxWidth:12}},tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+f1(c.raw)}}}},
+      scales:{y:{beginAtZero:true,max:14,grid:{color:grid},border:{display:false},ticks:{callback:function(v){return v+' h'}}},x:{grid:{display:false},ticks:{color:fg,font:{weight:'700'}}}}}});
+  matrix=new Chart(document.getElementById('matrix'),{type:'bubble',data:{datasets:P.map(function(p){return {label:p.short,data:[{x:p.cxN+(p.id==='rep'?0.12:p.id==='onb'?-0.12:p.id==='enq'?-0.08:0.08),y:0,r:p.hours*1.6}],backgroundColor:col(p)+'AA',borderColor:col(p),borderWidth:1.5}})},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:fg,boxWidth:12}},tooltip:{callbacks:{label:function(c){var p=P[c.datasetIndex];return ' '+p.short+': '+f1(c.raw.y)+' h/week saved · '+p.cx+' complexity'}}}},
+      scales:{x:{min:0.5,max:3.5,afterBuildTicks:function(ax){ax.ticks=[{value:1},{value:2},{value:3}]},grid:{color:grid},border:{display:false},ticks:{callback:function(v){return {1:'Low',2:'Medium',3:'High'}[v]||''}},title:{display:true,text:'Implementation complexity',color:tok('--muted')}},
+              y:{beginAtZero:true,max:9,grid:{color:grid},border:{display:false},ticks:{callback:function(v){return v+' h'}},title:{display:true,text:'Potential hours saved / week',color:tok('--muted')}}}}});
+}
+pick(cur);update();
+})();
+</script>
